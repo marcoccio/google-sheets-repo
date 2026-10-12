@@ -15,11 +15,17 @@ tocar código o datos. Este archivo no lo repite.
 
 ## Estado del repo
 
-- Todavía **no hay código de Apps Script**. Solo están las pruebas de
-  regresión y el traspaso.
-- Primer paso pendiente (§0 y §7 del traspaso): `clasp clone` del proyecto
-  desplegado, commitearlo **sin modificar nada**, y comparar contra
-  `Codigo_v9.gs` / `Web_v8.html`. `clasp` no está instalado en esta máquina.
+- `apps-script/` es el espejo del proyecto desplegado y el `rootDir` de
+  `.clasp.json` (ahí está el Script ID). Su primer commit es el código bajado
+  sin modificar. Los nombres de archivo tienen que quedar planos e iguales a
+  los del proyecto (`Código.js`, `Web.html`, `Panel.html`): una subcarpeta
+  cambia el nombre remoto y rompe `createHtmlOutputFromFile('Web')`.
+- `gs_code/` y `html/` guardan versiones numeradas de referencia
+  (`Codigo_v9.gs`, `Web_v9.html`, ...).
+- `Finanzas.js` es la librería `google-sheets-argento` pegada tal cual;
+  `Indices.js` usa su `bcraVariables()`. No se edita.
+- `clasp pull` / `clasp show-file-status` son seguros. **`clasp push` pisa el
+  proyecto en producción**: solo con confirmación de Marcos.
 
 ## Pruebas
 

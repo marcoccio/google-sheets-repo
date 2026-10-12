@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="theme-color" content="#c2410c">
+<style>
+  :root {
+    /* Neutros cálidos, para que acompañen al naranja */
+    --tinta: #241a14;
+    --tenue: #6f6058;
+    --linea: #e8ded7;
+    --fondo: #f7f3f0;
+    --tarjeta: #ffffff;
+
+    /* Naranja quemado: contrasta bien con blanco (5.9:1) */
+    --acento: #c2410c;
+    --acento-oscuro: #9a3412;
+    --acento-suave: #fdece2;
+
+    /* Rojo de error, corrido al carmín para no confundirlo con el naranja */
+    --alerta: #9f1239;
+    --alerta-suave: #fde7ec;
+
+    /* Aviso en azul pizarra: bien distinto del acento */
+    --aviso: #1e4e8c;
+    --aviso-suave: #e7eff9;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    color: var(--tinta);
+    background: var(--fondo);
+    margin: 0;
+    padding: 0 0 44px;
+  }
+
+  /* ---- Encabezado ---- */
+
+  .barra {
+    background: var(--acento);
+    color: #fff;
+    padding: 18px 16px 20px;
+  }
+
+  .encabezado {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .encabezado h1 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+
+  .iconos { display: flex; gap: 7px; flex-shrink: 0; }
+
+  .chip {
+    background: rgba(255,255,255,.16);
+    color: #fff;
+    border: 0;
+    text-decoration: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 8px;
+  }
+
+  .chip:active { background: rgba(255,255,255,.3); }
+
+  .acumulado { display: flex; gap: 9px; }
+
+  .acumulado div {
+    flex: 1;
+    background: rgba(255,255,255,.13);
+    border-radius: 10px;
+    padding: 11px 12px;
+  }
+
+  .acumulado span {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    opacity: .85;
+    margin-bottom: 3px;
+  }
+
+  .acumulado strong { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+
+  .acumulado button {
+    flex: 1;
+    display: block;
+    text-align: left;
+    border: 0;
+    font: inherit;
+    color: #fff;
+    background: rgba(255,255,255,.13);
+    border-radius: 10px;
+    padding: 11px 12px;
+  }
+
+  .acumulado button:active { background: rgba(255,255,255,.24); }
+
+  .detalle {
+    margin-top: 10px;
+    background: rgba(255,255,255,.11);
+    border-radius: 10px;
+    padding: 4px 13px;
+    display: none;
+  }
+
+  .detalle.abierto { display: block; }
+
+  .detalle .fila {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,.14);
+  }
+
+  .detalle .fila:last-child { border-bottom: 0; }
+  .detalle .fila span { opacity: .85; }
+  .detalle .fila strong { font-weight: 600; }
+
+  .pie {
+    text-align: center;
+    font-size: 12px;
+    opacity: .85;
+    margin-top: 11px;
+    line-height: 1.5;
+  }
+
+  /* ---- Navegacion ---- */
+
+  .contenido { padding: 16px 14px 0; }
+
+  .destino { display: flex; gap: 7px; margin-bottom: 14px; }
+
+  .destino button {
+    flex: 1;
+    border: 2px solid var(--linea);
+    background: var(--tarjeta);
+    color: var(--tenue);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 3px;
+    border-radius: 11px;
+  }
+
+  .destino button.activo {
+    border-color: var(--acento);
+    background: var(--acento-suave);
+    color: var(--acento-oscuro);
+  }
+
+  .selector {
+    display: flex;
+    gap: 3px;
+    background: #ede4de;
+    border-radius: 11px;
+    padding: 4px;
+    margin-bottom: 14px;
+  }
+
+  .selector button {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    color: var(--tenue);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 3px;
+    border-radius: 8px;
+  }
+
+  .selector button.activo {
+    background: var(--tarjeta);
+    color: var(--tinta);
+    box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  }
+
+  /* ---- Formularios ---- */
+
+  .tarjeta { background: var(--tarjeta); border-radius: 13px; padding: 16px 15px; }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--tenue);
+    margin: 0 0 6px;
+  }
+
+  .campo { margin-bottom: 15px; }
+
+  input, select {
+    width: 100%;
+    font: inherit;
+    color: var(--tinta);
+    background: var(--fondo);
+    border: 1px solid var(--linea);
+    border-radius: 9px;
+    padding: 13px 12px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7785' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 13px center;
+    background-size: 11px;
+    padding-right: 34px;
+  }
+
+  input:focus, select:focus {
+    outline: 2px solid var(--acento);
+    outline-offset: -1px;
+    background: var(--tarjeta);
+  }
+
+  .plata input {
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -.02em;
+    padding: 14px 12px;
+  }
+
+  .duo { display: flex; gap: 10px; }
+  .duo .campo { flex: 1; }
+
+  .guardar {
+    width: 100%;
+    border: 0;
+    background: var(--acento);
+    color: #fff;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    padding: 16px;
+    border-radius: 10px;
+    margin-top: 3px;
+  }
+
+  .guardar:active { background: var(--acento-oscuro); }
+  .guardar:disabled { opacity: .5; }
+
+  .secundario {
+    width: 100%;
+    border: 1px solid var(--linea);
+    background: var(--fondo);
+    color: var(--tinta);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px;
+    border-radius: 10px;
+    margin-top: 10px;
+  }
+
+  .enlace {
+    display: block;
+    text-align: center;
+    color: var(--acento);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-top: 14px;
+  }
+
+  .nota {
+    background: var(--acento-suave);
+    color: var(--acento-oscuro);
+    border-radius: 10px;
+    padding: 11px 13px;
+    font-size: 13px;
+    line-height: 1.45;
+    margin-bottom: 14px;
+  }
+
+  .configurar p {
+    margin: 0 0 14px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--tenue);
+  }
+
+  .separador {
+    text-align: center;
+    font-size: 12px;
+    color: var(--tenue);
+    margin: 16px 0 12px;
+  }
+
+  /* ---- Resultado de conciliacion ---- */
+
+  .resultado { margin-top: 16px; display: none; }
+  .resultado.visible { display: block; }
+
+  .linea {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--linea);
+    font-size: 14px;
+  }
+
+  .linea span { color: var(--tenue); }
+  .linea strong { font-weight: 600; text-align: right; }
+
+  .veredicto {
+    margin-top: 12px;
+    padding: 12px 13px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.45;
+    font-weight: 600;
+  }
+
+  .veredicto.ok { background: var(--acento-suave); color: var(--acento-oscuro); }
+  .veredicto.difiere { background: var(--aviso-suave); color: var(--aviso); }
+
+  /* ---- Avisos ---- */
+
+  .aviso {
+    margin: 14px 14px 0;
+    padding: 13px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.45;
+    display: none;
+  }
+
+  .aviso.ok { display: block; background: var(--acento-suave); color: var(--acento-oscuro); }
+  .aviso.error { display: block; background: var(--alerta-suave); color: var(--alerta); }
+
+  .pieTotal {
+    text-align: center;
+    font-size: 12px;
+    color: var(--tenue);
+    margin-top: 13px;
+    line-height: 1.5;
+  }
+
+  .oculto { display: none; }
+
+  /* Modal de identidad */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(36,26,20,.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    z-index: 50;
+  }
+
+  .modal.abierto { display: flex; }
+
+  .modalCaja {
+    background: var(--tarjeta);
+    border-radius: 15px;
+    padding: 22px 20px;
+    max-width: 340px;
+    width: 100%;
+  }
+
+  .modalCaja h2 { margin: 0 0 8px; font-size: 19px; }
+
+  .modalCaja p {
+    margin: 0 0 18px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--tenue);
+  }
+
+  .modalBotones { display: flex; flex-direction: column; gap: 9px; }
+  .modalBotones .guardar { margin-top: 0; }
+
+  /* Cargando */
+  .cargando {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 34px 16px;
+    color: var(--tenue);
+    font-size: 14px;
+  }
+
+  .rueda {
+    width: 19px;
+    height: 19px;
+    border: 2.5px solid var(--linea);
+    border-top-color: var(--acento);
+    border-radius: 50%;
+    animation: girar .8s linear infinite;
+  }
+
+  @keyframes girar { to { transform: rotate(360deg); } }
+
+  .esqueleto {
+    display: inline-block;
+    min-width: 62px;
+    height: 17px;
+    border-radius: 5px;
+    background: rgba(255,255,255,.25);
+    animation: latir 1.2s ease-in-out infinite;
+  }
+
+  @keyframes latir { 50% { opacity: .45; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rueda { animation-duration: 2.5s; }
+    .esqueleto { animation: none; }
+  }
+
+  .adjunto {
+    display: block;
+    border: 1px dashed var(--linea);
+    background: var(--fondo);
+    border-radius: 9px;
+    padding: 13px 12px;
+    font-size: 14px;
+    color: var(--tenue);
+    text-align: center;
+  }
+
+  .adjunto.cargado { border-style: solid; border-color: var(--acento); color: var(--acento); font-weight: 600; }
+  .adjunto input { display: none; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .guardar, .secundario, .selector button, .destino button { transition: all .15s ease; }
+  }
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <div class="encabezado">
+    <h1>Gastos depto</h1>
+    <div class="iconos">
+      <button class="chip" onclick="irA('ajustes')">Ajustes</button>
+      <a class="chip" id="verPlanilla" href="#" target="_blank" rel="noopener">Planilla</a>
+    </div>
+  </div>
+
+  <div class="acumulado">
+    <button onclick="alternarDetalle()">
+      <span>Marcos este mes</span><strong id="accMarcos"><span class="esqueleto"></span></strong>
+    </button>
+    <button onclick="alternarDetalle()">
+      <span>Flor este mes</span><strong id="accFlor"><span class="esqueleto"></span></strong>
+    </button>
+  </div>
+
+  <div class="detalle" id="detalleAcumulado">
+    <div class="fila"><span>Servicios del mes</span><strong id="detServicios">-</strong></div>
+    <div class="fila"><span>Gastos del mes</span><strong id="detGastos">-</strong></div>
+  </div>
+
+  <div class="pie" id="pieMes"></div>
+</div>
+
+<div class="contenido">
+
+  <div class="destino">
+    <button id="destDepto" class="activo" onclick="irA('depto')">Del depto</button>
+    <button id="destPersonal" onclick="irA('personal')">Personal</button>
+    <button id="destConciliar" onclick="irA('conciliar')">Conciliar</button>
+  </div>
+
+  <!-- ============ DEPTO ============ -->
+  <div id="zonaDepto">
+
+    <div class="selector">
+      <button id="tabGasto" class="activo" onclick="cambiar('gasto')">Gasto</button>
+      <button id="tabServicio" onclick="cambiar('servicio')">Servicio</button>
+      <button id="tabIngreso" onclick="cambiar('ingreso')">Ingreso</button>
+    </div>
+
+    <div class="tarjeta" id="formGasto">
+      <div class="campo plata">
+        <label for="monto">Monto</label>
+        <input type="number" id="monto" placeholder="0" min="0" step="1" inputmode="numeric">
+      </div>
+
+      <div class="duo">
+        <div class="campo">
+          <label for="categoria">Categoría</label>
+          <select id="categoria" onchange="cargarDetalles()"></select>
+        </div>
+        <div class="campo">
+          <label for="detalle">Detalle</label>
+          <select id="detalle"></select>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="descripcion">Descripción</label>
+        <input type="text" id="descripcion" placeholder="Opcional">
+      </div>
+
+      <div class="duo">
+        <div class="campo">
+          <label for="pagadoPor">Pago</label>
+          <select id="pagadoPor"><option>Marcos</option><option>Flor</option></select>
+        </div>
+        <div class="campo">
+          <label for="division">Se divide</label>
+          <select id="division">
+            <option>50/50</option>
+            <option>Solo Marcos</option>
+            <option>Solo Flor</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="fecha">Fecha</label>
+        <input type="date" id="fecha">
+      </div>
+
+      <div class="campo">
+        <label>Comprobante (opcional)</label>
+        <label class="adjunto" id="lblGasto">
+          Tocá para adjuntar foto o PDF
+          <input type="file" id="archGasto" accept="image/*,application/pdf" onchange="marcarAdjunto('archGasto','lblGasto')">
+        </label>
+      </div>
+
+      <button class="guardar" id="btnGasto" onclick="enviarGasto()">Guardar gasto</button>
+    </div>
+
+    <div class="tarjeta oculto" id="formServicio">
+      <div class="campo plata">
+        <label for="montoServicio">Monto</label>
+        <input type="number" id="montoServicio" placeholder="0" min="0" step="1" inputmode="numeric">
+      </div>
+
+      <div class="campo">
+        <label for="servicio">Servicio</label>
+        <select id="servicio"></select>
+      </div>
+
+      <div class="duo">
+        <div class="campo">
+          <label for="mes">Mes</label>
+          <select id="mes"></select>
+        </div>
+        <div class="campo">
+          <label for="pagoServicio">Lo pagó</label>
+          <select id="pagoServicio"><option>Marcos</option><option>Flor</option></select>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="fechaServicio">Fecha de pago</label>
+        <input type="date" id="fechaServicio">
+      </div>
+
+      <div class="campo">
+        <label>Comprobante (opcional)</label>
+        <label class="adjunto" id="lblServicio">
+          Tocá para adjuntar foto o PDF
+          <input type="file" id="archServicio" accept="image/*,application/pdf" onchange="marcarAdjunto('archServicio','lblServicio')">
+        </label>
+      </div>
+
+      <button class="guardar" id="btnServicio" onclick="enviarServicio()">Guardar servicio</button>
+    </div>
+
+    <div class="tarjeta oculto" id="formIngreso">
+      <div class="nota">
+        Ingresos que entran al fondo común. El sueldo de cada uno va en Personal.
+      </div>
+
+      <div class="campo plata">
+        <label for="montoIngreso">Monto</label>
+        <input type="number" id="montoIngreso" placeholder="0" min="0" step="1" inputmode="numeric">
+      </div>
+
+      <div class="campo">
+        <label for="conceptoIngreso">Concepto</label>
+        <select id="conceptoIngreso"></select>
+      </div>
+
+      <div class="campo">
+        <label for="descripcionIngreso">Descripción</label>
+        <input type="text" id="descripcionIngreso" placeholder="Opcional">
+      </div>
+
+      <div class="duo">
+        <div class="campo">
+          <label for="recibidoPor">Lo recibió</label>
+          <select id="recibidoPor">
+            <option>Marcos</option><option>Flor</option><option>Los dos</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fechaIngreso">Fecha</label>
+          <input type="date" id="fechaIngreso">
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Comprobante (opcional)</label>
+        <label class="adjunto" id="lblIngreso">
+          Tocá para adjuntar foto o PDF
+          <input type="file" id="archIngreso" accept="image/*,application/pdf" onchange="marcarAdjunto('archIngreso','lblIngreso')">
+        </label>
+      </div>
+
+      <button class="guardar" id="btnIngreso" onclick="enviarIngreso()">Guardar ingreso</button>
+    </div>
+
+  </div>
+
+  <!-- ============ PERSONAL ============ -->
+  <div id="zonaPersonal" class="oculto">
+
+    <div class="tarjeta" id="cargandoPersonal">
+      <div class="cargando"><span class="rueda"></span> Buscando tu planilla personal…</div>
+    </div>
+
+    <div class="tarjeta configurar oculto" id="configPersonal">
+      <p>
+        Tus movimientos personales van a una planilla aparte, en tu propio Drive.
+        Solo vos podés verla.
+      </p>
+      <button class="guardar" onclick="crearPersonal()">Crear mi planilla personal</button>
+      <div class="separador">o si ya tenés una</div>
+      <div class="campo">
+        <label for="idPersonal">Link o ID de tu planilla</label>
+        <input type="text" id="idPersonal" placeholder="Pegá el link acá">
+      </div>
+      <button class="secundario" onclick="vincularPersonal()">Vincular esa planilla</button>
+    </div>
+
+    <div class="oculto" id="zonaPersonalLista">
+      <div class="selector">
+        <button id="tabPerGastos" class="activo" onclick="cambiarPersonal('Gastos')">Gastos</button>
+        <button id="tabPerIngresos" onclick="cambiarPersonal('Ingresos')">Ingresos</button>
+        <button id="tabPerAhorros" onclick="cambiarPersonal('Ahorros')">Ahorros</button>
+      </div>
+
+      <div class="tarjeta">
+        <div class="nota">
+          Esto se guarda solo en tu planilla personal. La otra persona no lo ve.
+        </div>
+
+        <div class="campo plata">
+          <label for="montoPersonal">Monto</label>
+          <input type="number" id="montoPersonal" placeholder="0" min="0" step="1" inputmode="numeric">
+        </div>
+
+        <div class="campo">
+          <label for="categoriaPersonal">Categoría</label>
+          <select id="categoriaPersonal"></select>
+        </div>
+
+        <div class="campo">
+          <label for="descripcionPersonal">Descripción</label>
+          <input type="text" id="descripcionPersonal" placeholder="Opcional">
+        </div>
+
+        <div class="campo">
+          <label for="fechaPersonal">Fecha</label>
+          <input type="date" id="fechaPersonal">
+        </div>
+
+        <button class="guardar" id="btnPersonal" onclick="enviarPersonal()">Guardar gasto personal</button>
+
+        <div class="pieTotal" id="piePersonalTotal"></div>
+        <a class="enlace" id="verPersonal" href="#" target="_blank" rel="noopener">Ver mi planilla personal</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ CONCILIAR ============ -->
+  <div id="zonaConciliar" class="oculto">
+    <div class="tarjeta">
+      <div class="nota">
+        Compará lo anotado con lo que realmente gastaste en un período.
+        Mirá el resumen del banco o la tarjeta y escribí el total real.
+      </div>
+
+      <div class="campo">
+        <label for="destinoConciliar">Qué querés revisar</label>
+        <select id="destinoConciliar">
+          <option value="depto">Gastos del depto</option>
+          <option value="personal">Mis gastos personales</option>
+        </select>
+      </div>
+
+      <div class="duo">
+        <div class="campo">
+          <label for="desde">Desde</label>
+          <input type="date" id="desde">
+        </div>
+        <div class="campo">
+          <label for="hasta">Hasta</label>
+          <input type="date" id="hasta">
+        </div>
+      </div>
+
+      <div class="campo plata">
+        <label for="montoReal">Total real gastado</label>
+        <input type="number" id="montoReal" placeholder="0" min="0" step="1" inputmode="numeric">
+      </div>
+
+      <button class="guardar" id="btnConciliar" onclick="enviarConciliar()">Comparar</button>
+
+      <div class="resultado" id="resultado">
+        <div class="linea"><span>Anotado en la planilla</span><strong id="resGastos">-</strong></div>
+        <div class="linea"><span>Ingresos del período</span><strong id="resIngresos">-</strong></div>
+        <div class="linea"><span>Total real</span><strong id="resReal">-</strong></div>
+        <div class="linea"><span>Diferencia</span><strong id="resDif">-</strong></div>
+
+        <div class="veredicto" id="veredicto"></div>
+
+        <div class="oculto" id="zonaAjuste">
+          <div class="campo" id="campoPagadoAjuste" style="margin-top:14px">
+            <label for="pagadoAjuste">Quién lo pagó</label>
+            <select id="pagadoAjuste"><option>Marcos</option><option>Flor</option></select>
+          </div>
+          <button class="secundario" onclick="cargarAjuste()">Cargar la diferencia como ajuste</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ AJUSTES ============ -->
+  <div id="zonaAjustes" class="oculto">
+    <div class="tarjeta">
+      <div class="linea"><span>Entraste como</span><strong id="ajMail">-</strong></div>
+      <div class="linea"><span>Te cargo como</span><strong id="ajNombre">-</strong></div>
+    </div>
+
+    <div class="tarjeta" style="margin-top:14px">
+      <div class="nota">
+        Si querés empezar de cero con tus finanzas personales, desvinculá la
+        planilla actual y creá una nueva. La planilla vieja no se borra.
+      </div>
+      <button class="secundario" onclick="desvincularPersonal()">Desvincular mi planilla personal</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal" id="quienSoy">
+  <div class="modalCaja">
+    <h2>¿Quién sos?</h2>
+    <p>Entraste con <strong id="mailDetectado">tu cuenta</strong>.
+       No pude deducir el nombre, así que elegí una vez y lo recuerdo.</p>
+    <div class="modalBotones">
+      <button class="guardar" onclick="elegirQuienSoy('Marcos')">Soy Marcos</button>
+      <button class="guardar" onclick="elegirQuienSoy('Flor')">Soy Flor</button>
+    </div>
+  </div>
+</div>
+
+<div class="aviso" id="aviso"></div>
+
+<script>
+  var OPC = null;
+  var TIPO_PERSONAL = 'Gastos';
+  var SECCION = 'depto';
+  var PERSONAL_CARGADO = false;
+  var YO = 'Marcos';
+  var ULTIMA_CONCILIACION = null;
+
+  window.addEventListener('load', function () {
+    var hoy = new Date().toISOString().slice(0, 10);
+    ['fecha', 'fechaServicio', 'fechaIngreso', 'fechaPersonal', 'hasta'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = hoy;
+    });
+
+    var hace30 = new Date();
+    hace30.setDate(hace30.getDate() - 30);
+    document.getElementById('desde').value = hace30.toISOString().slice(0, 10);
+
+    google.script.run.withSuccessHandler(iniciar).obtenerOpciones();
+    google.script.run
+      .withSuccessHandler(function (url) {
+        document.getElementById('verPlanilla').href = url;
+      })
+      .urlPlanilla();
+
+    conectarEnter('monto', 'categoria');
+    conectarEnter('montoServicio', 'servicio');
+    conectarEnter('montoIngreso', 'conceptoIngreso');
+    conectarEnter('montoPersonal', 'categoriaPersonal');
+
+    recuperarBorrador();
+    history.replaceState({ seccion: 'depto' }, '', '#depto');
+
+    refrescarAcumulado();
+  });
+
+  function iniciar(datos) {
+    OPC = datos;
+
+    if (datos.yo) {
+      YO = datos.yo.nombre;
+      aplicarMiNombre();
+      if (!datos.yo.seguro) preguntarQuienSoy(datos.yo.mail);
+    }
+
+    llenar('categoria', datos.categorias);
+    llenar('servicio', datos.servicios);
+    llenar('mes', datos.meses);
+    llenar('categoriaPersonal', datos.personales[TIPO_PERSONAL]);
+    llenar('conceptoIngreso', datos.conceptosIngreso);
+    cargarDetalles();
+    seleccionarMesActual();
+  }
+
+  /** Deja seleccionado mi nombre en todos los selectores de persona. */
+  function aplicarMiNombre() {
+    ['pagadoPor', 'pagoServicio', 'recibidoPor', 'pagadoAjuste'].forEach(function (id) {
+      var sel = document.getElementById(id);
+      if (!sel) return;
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].textContent === YO) { sel.selectedIndex = i; return; }
+      }
+    });
+  }
+
+  /** Si no se pudo deducir del mail, se pregunta una sola vez. */
+  function preguntarQuienSoy(mail) {
+    document.getElementById('mailDetectado').textContent = mail || 'tu cuenta';
+    document.getElementById('quienSoy').classList.add('abierto');
+  }
+
+  function elegirQuienSoy(nombre) {
+    google.script.run
+      .withSuccessHandler(function (yo) {
+        YO = yo.nombre;
+        aplicarMiNombre();
+        document.getElementById('quienSoy').classList.remove('abierto');
+        mostrar('Listo, te vamos a reconocer como ' + YO + '.', 'ok');
+      })
+      .withFailureHandler(function (e) { mostrar(e.message, 'error'); })
+      .guardarMiNombre(nombre);
+  }
+
+  function llenar(id, valores) {
+    var sel = document.getElementById(id);
+    // Solo se escriben opciones en un <select>. Evita que un id repetido
+    // haga que las opciones terminen dentro de otro elemento.
+    if (!sel || sel.tagName !== 'SELECT') {
+      console.warn('llenar(): "' + id + '" no es un select.');
+      return;
+    }
+    sel.innerHTML = '';
+    (valores || []).forEach(function (v) {
+      var o = document.createElement('option');
+      o.textContent = v;
+      sel.appendChild(o);
+    });
+  }
+
+  function cargarDetalles() {
+    if (!OPC) return;
+    llenar('detalle', OPC.detalles[document.getElementById('categoria').value] || []);
+  }
+
+  function seleccionarMesActual() {
+    var nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    var actual = nombres[new Date().getMonth()];
+    var sel = document.getElementById('mes');
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].textContent === actual) { sel.selectedIndex = i; return; }
+    }
+  }
+
+  /* ---- Encabezado ---- */
+
+  function refrescarAcumulado() {
+    google.script.run
+      .withSuccessHandler(function (d) {
+        document.getElementById('accMarcos').textContent = d.marcos;
+        document.getElementById('accFlor').textContent = d.flor;
+        document.getElementById('pieMes').textContent = d.mes + ' - tocá los números para ver el detalle';
+        document.getElementById('detServicios').textContent = d.servicios || '-';
+        document.getElementById('detGastos').textContent = d.gastos || '-';
+      })
+      .withFailureHandler(function () {
+        document.getElementById('pieMes').textContent = '';
+      })
+      .obtenerAcumulado();
+  }
+
+  function refrescarTotalPersonal() {
+    google.script.run
+      .withSuccessHandler(function (t) {
+        var pie = document.getElementById('piePersonalTotal');
+        if (pie) {
+          pie.textContent = t
+            ? ('Gastos ' + t.gastos + ' · Ingresos ' + t.ingresos + ' · Ahorros ' + t.ahorros)
+            : '';
+        }
+      })
+      .totalesPersonales();
+  }
+
+  /* ---- Navegacion ---- */
+
+  function alternarDetalle() {
+    document.getElementById('detalleAcumulado').classList.toggle('abierto');
+  }
+
+  /** Cambia de seccion y deja una marca en el historial del navegador. */
+  function irA(cual) {
+    if (cual === SECCION) return;
+    history.pushState({ seccion: cual }, '', '#' + cual);
+    cambiarDestino(cual);
+  }
+
+  window.addEventListener('popstate', function (e) {
+    var destino = (e.state && e.state.seccion) ? e.state.seccion : 'depto';
+    cambiarDestino(destino);
+  });
+
+  function cambiarDestino(cual) {
+    SECCION = cual;
+    ['Depto', 'Personal', 'Conciliar', 'Ajustes'].forEach(function (z) {
+      document.getElementById('zona' + z).classList.add('oculto');
+    });
+    ['destDepto', 'destPersonal', 'destConciliar'].forEach(function (b) {
+      document.getElementById(b).classList.remove('activo');
+    });
+
+    if (cual === 'depto') {
+      document.getElementById('zonaDepto').classList.remove('oculto');
+      document.getElementById('destDepto').classList.add('activo');
+    } else if (cual === 'personal') {
+      document.getElementById('zonaPersonal').classList.remove('oculto');
+      document.getElementById('destPersonal').classList.add('activo');
+      revisarPersonal();
+    } else if (cual === 'conciliar') {
+      document.getElementById('zonaConciliar').classList.remove('oculto');
+      document.getElementById('destConciliar').classList.add('activo');
+    } else {
+      document.getElementById('zonaAjustes').classList.remove('oculto');
+      if (OPC && OPC.yo) {
+        document.getElementById('ajMail').textContent = OPC.yo.mail || '-';
+        document.getElementById('ajNombre').textContent = YO;
+      }
+    }
+    limpiarAviso();
+  }
+
+  function cambiar(cual) {
+    var mapa = { gasto: 'formGasto', servicio: 'formServicio', ingreso: 'formIngreso' };
+    var tabs = { gasto: 'tabGasto', servicio: 'tabServicio', ingreso: 'tabIngreso' };
+    Object.keys(mapa).forEach(function (k) {
+      document.getElementById(mapa[k]).classList.toggle('oculto', k !== cual);
+      document.getElementById(tabs[k]).classList.toggle('activo', k === cual);
+    });
+    limpiarAviso();
+  }
+
+  function cambiarPersonal(hoja) {
+    TIPO_PERSONAL = hoja;
+
+    ['Gastos', 'Ingresos', 'Ahorros'].forEach(function (h) {
+      document.getElementById('tabPer' + h).classList.toggle('activo', h === hoja);
+    });
+
+    if (OPC && OPC.personales) llenar('categoriaPersonal', OPC.personales[hoja]);
+
+    var etiquetas = {
+      Gastos: 'Guardar gasto personal',
+      Ingresos: 'Guardar ingreso personal',
+      Ahorros: 'Guardar ahorro'
+    };
+    document.getElementById('btnPersonal').textContent = etiquetas[hoja];
+    limpiarAviso();
+  }
+
+  function mostrar(texto, tipo) {
+    var a = document.getElementById('aviso');
+    a.textContent = texto;
+    a.className = 'aviso ' + tipo;
+    a.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function limpiarAviso() {
+    document.getElementById('aviso').className = 'aviso';
+  }
+
+  /* ---- Comprobantes ---- */
+
+  function marcarAdjunto(idInput, idLabel) {
+    var f = document.getElementById(idInput).files[0];
+    var lbl = document.getElementById(idLabel);
+    if (f) {
+      lbl.textContent = '📎 ' + f.name;
+      lbl.classList.add('cargado');
+    } else {
+      lbl.textContent = 'Tocá para adjuntar foto o PDF';
+      lbl.classList.remove('cargado');
+    }
+  }
+
+  function limpiarAdjunto(idInput, idLabel) {
+    document.getElementById(idInput).value = '';
+    var lbl = document.getElementById(idLabel);
+    lbl.textContent = 'Tocá para adjuntar foto o PDF';
+    lbl.classList.remove('cargado');
+  }
+
+  /** Lee el archivo y devuelve una promesa con {nombre, tipo, datos}. */
+  function leerArchivo(idInput) {
+    return new Promise(function (resolver) {
+      var f = document.getElementById(idInput).files[0];
+      if (!f) return resolver(null);
+
+      if (f.size > 8 * 1024 * 1024) {
+        mostrar('El archivo supera los 8 MB. Probá con una foto más liviana.', 'error');
+        return resolver(null);
+      }
+
+      var lector = new FileReader();
+      lector.onload = function () {
+        resolver({
+          nombre: f.name,
+          tipo: f.type,
+          datos: lector.result.split(',')[1]
+        });
+      };
+      lector.onerror = function () { resolver(null); };
+      lector.readAsDataURL(f);
+    });
+  }
+
+  /** Devuelve la fecha del campo, o la de hoy si quedo vacia. */
+  function fechaDe(id) {
+    var el = document.getElementById(id);
+    var v = el ? el.value : '';
+    if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      v = new Date().toISOString().slice(0, 10);
+      if (el) el.value = v;
+    }
+    return v;
+  }
+
+  /**
+   * Envuelve una llamada al servidor con un limite de tiempo.
+   *
+   * Apps Script a veces no contesta nunca (la sesion del iframe se vence si
+   * la pagina quedo abierta mucho rato) y no dispara ni el success ni el
+   * failure: el boton se queda en "Guardando..." para siempre. Esto corta
+   * esa espera y deja reintentar.
+   */
+  var FALLAS_SEGUIDAS = 0;
+  var ESPERA_MS = 15000;
+
+  function llamar(nombreFuncion, argumento, alSalirBien, alFallar) {
+    var terminado = false;
+
+    var reloj = setTimeout(function () {
+      if (terminado) return;
+      terminado = true;
+      FALLAS_SEGUIDAS++;
+
+      if (FALLAS_SEGUIDAS >= 2) {
+        guardarBorrador();
+        mostrar('La conexión se cortó. Recargando…', 'error');
+        setTimeout(function () { location.reload(); }, 1200);
+      } else {
+        alFallar({ message: 'No respondió el servidor. Probá de nuevo.' });
+      }
+    }, ESPERA_MS);
+
+    google.script.run
+      .withSuccessHandler(function (r) {
+        if (terminado) return;
+        terminado = true;
+        clearTimeout(reloj);
+        FALLAS_SEGUIDAS = 0;
+        alSalirBien(r);
+      })
+      .withFailureHandler(function (e) {
+        if (terminado) return;
+        terminado = true;
+        clearTimeout(reloj);
+        FALLAS_SEGUIDAS++;
+        alFallar(e);
+      })[nombreFuncion](argumento);
+  }
+
+  /** Antes de recargar, guarda lo escrito para no perderlo. */
+  function guardarBorrador() {
+    try {
+      var campos = {};
+      ['monto', 'descripcion', 'montoServicio', 'montoIngreso',
+       'descripcionIngreso', 'montoPersonal', 'descripcionPersonal']
+        .forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el && el.value) campos[id] = el.value;
+        });
+      sessionStorage.setItem('borrador', JSON.stringify(campos));
+    } catch (e) { /* si no hay sessionStorage, se pierde y listo */ }
+  }
+
+  function recuperarBorrador() {
+    try {
+      var guardado = sessionStorage.getItem('borrador');
+      if (!guardado) return;
+      var campos = JSON.parse(guardado);
+      Object.keys(campos).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = campos[id];
+      });
+      sessionStorage.removeItem('borrador');
+      mostrar('Recuperé lo que estabas escribiendo.', 'ok');
+    } catch (e) { /* nada */ }
+  }
+
+  /**
+   * Enter en el monto salta al desplegable y lo abre.
+   * showPicker() existe desde Chrome 121; si no esta, al menos enfoca.
+   */
+  function saltarA(idSelect) {
+    var sel = document.getElementById(idSelect);
+    if (!sel) return;
+    sel.focus();
+    if (typeof sel.showPicker === 'function') {
+      try { sel.showPicker(); } catch (e) { /* algunos navegadores lo bloquean */ }
+    }
+  }
+
+  function conectarEnter(idInput, idSelect) {
+    var el = document.getElementById(idInput);
+    if (!el) return;
+    el.setAttribute('enterkeyhint', 'next');
+    el.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      el.blur();
+      setTimeout(function () { saltarA(idSelect); }, 60);
+    });
+  }
+
+  function ocupado(id, texto, original) {
+    var b = document.getElementById(id);
+    b.disabled = !!texto;
+    b.textContent = texto || original;
+  }
+
+  /* ---- Guardar en el depto ---- */
+
+  function enviarGasto() {
+    var monto = document.getElementById('monto').value;
+    if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
+
+    ocupado('btnGasto', 'Guardando…');
+
+    leerArchivo('archGasto').then(function (comp) {
+      llamar('guardarGasto',
+        {
+          fecha: fechaDe('fecha'),
+          categoria: document.getElementById('categoria').value,
+          detalle: document.getElementById('detalle').value,
+          descripcion: document.getElementById('descripcion').value,
+          monto: monto,
+          pagadoPor: document.getElementById('pagadoPor').value,
+          division: document.getElementById('division').value,
+          comprobante: comp
+        },
+        function (msg) {
+          ocupado('btnGasto', '', 'Guardar gasto');
+          document.getElementById('monto').value = '';
+          document.getElementById('descripcion').value = '';
+          limpiarAdjunto('archGasto', 'lblGasto');
+          mostrar(msg, 'ok');
+          refrescarAcumulado();
+        },
+        function (e) {
+          ocupado('btnGasto', '', 'Guardar gasto');
+          mostrar(e.message, 'error');
+        });
+    });
+  }
+
+  function enviarServicio() {
+    var monto = document.getElementById('montoServicio').value;
+    if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
+
+    ocupado('btnServicio', 'Guardando…');
+
+    leerArchivo('archServicio').then(function (comp) {
+      llamar('guardarServicio',
+        {
+          fecha: fechaDe('fechaServicio'),
+          servicio: document.getElementById('servicio').value,
+          mes: document.getElementById('mes').value,
+          monto: monto,
+          pagadoPor: document.getElementById('pagoServicio').value,
+          comprobante: comp
+        },
+        function (msg) {
+          ocupado('btnServicio', '', 'Guardar servicio');
+          document.getElementById('montoServicio').value = '';
+          limpiarAdjunto('archServicio', 'lblServicio');
+          mostrar(msg, 'ok');
+          refrescarAcumulado();
+        },
+        function (e) {
+          ocupado('btnServicio', '', 'Guardar servicio');
+          mostrar(e.message, 'error');
+        });
+    });
+  }
+
+  function enviarIngreso() {
+    var monto = document.getElementById('montoIngreso').value;
+    if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
+
+    ocupado('btnIngreso', 'Guardando…');
+
+    leerArchivo('archIngreso').then(function (comp) {
+      llamar('guardarIngreso',
+        {
+          fecha: fechaDe('fechaIngreso'),
+          concepto: document.getElementById('conceptoIngreso').value,
+          descripcion: document.getElementById('descripcionIngreso').value,
+          monto: monto,
+          recibidoPor: document.getElementById('recibidoPor').value,
+          comprobante: comp
+        },
+        function (msg) {
+          ocupado('btnIngreso', '', 'Guardar ingreso');
+          document.getElementById('montoIngreso').value = '';
+          document.getElementById('descripcionIngreso').value = '';
+          limpiarAdjunto('archIngreso', 'lblIngreso');
+          mostrar(msg, 'ok');
+          refrescarAcumulado();
+        },
+        function (e) {
+          ocupado('btnIngreso', '', 'Guardar ingreso');
+          mostrar(e.message, 'error');
+        });
+    });
+  }
+
+  /* ---- Personal ---- */
+
+  function pintarPersonal(e) {
+    var listo = e && e.existe;
+    document.getElementById('cargandoPersonal').classList.add('oculto');
+    document.getElementById('zonaPersonalLista').classList.toggle('oculto', !listo);
+    document.getElementById('configPersonal').classList.toggle('oculto', listo);
+
+    if (listo) {
+      document.getElementById('verPersonal').href = e.url;
+      refrescarTotalPersonal();
+      // Las cotizaciones se refrescan atrás, sin frenar la pantalla.
+      google.script.run.actualizarDatosMercadoSiHaceFalta();
+    }
+  }
+
+  /** Se llama recién al entrar a la pestaña Personal, no al abrir la app. */
+  function revisarPersonal(forzar) {
+    if (PERSONAL_CARGADO && !forzar) return;
+    PERSONAL_CARGADO = true;
+
+    document.getElementById('cargandoPersonal').classList.remove('oculto');
+    document.getElementById('zonaPersonalLista').classList.add('oculto');
+    document.getElementById('configPersonal').classList.add('oculto');
+
+    google.script.run
+      .withSuccessHandler(pintarPersonal)
+      .withFailureHandler(function (e) {
+        PERSONAL_CARGADO = false;
+        document.getElementById('cargandoPersonal').classList.add('oculto');
+        document.getElementById('configPersonal').classList.remove('oculto');
+        mostrar(e.message, 'error');
+      })
+      .estadoPersonal();
+  }
+
+  function crearPersonal() {
+    document.getElementById('configPersonal').classList.add('oculto');
+    document.getElementById('cargandoPersonal').classList.remove('oculto');
+    document.getElementById('cargandoPersonal').querySelector('.cargando').innerHTML =
+      '<span class="rueda"></span> Armando tu planilla, tarda unos segundos…';
+
+    google.script.run
+      .withSuccessHandler(function () {
+        limpiarAviso();
+        revisarPersonal(true);
+        mostrar('Planilla creada. Ya podés cargar movimientos.', 'ok');
+      })
+      .withFailureHandler(function (e) {
+        document.getElementById('cargandoPersonal').classList.add('oculto');
+        document.getElementById('configPersonal').classList.remove('oculto');
+        mostrar(e.message, 'error');
+      })
+      .crearPlanillaPersonal();
+  }
+
+  function vincularPersonal() {
+    var texto = document.getElementById('idPersonal').value;
+    if (!texto.trim()) return mostrar('Pegá el link de tu planilla.', 'error');
+
+    google.script.run
+      .withSuccessHandler(function () { limpiarAviso(); revisarPersonal(true); })
+      .withFailureHandler(function (e) { mostrar(e.message, 'error'); })
+      .vincularPlanillaPersonal(texto);
+  }
+
+  function enviarPersonal() {
+    var monto = document.getElementById('montoPersonal').value;
+    if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
+
+    var etiquetas = {
+      Gastos: 'Guardar gasto personal',
+      Ingresos: 'Guardar ingreso personal',
+      Ahorros: 'Guardar ahorro'
+    };
+    var texto = etiquetas[TIPO_PERSONAL];
+    ocupado('btnPersonal', 'Guardando...');
+
+    llamar('guardarMovimientoPersonal',
+      {
+        fecha: fechaDe('fechaPersonal'),
+        hoja: TIPO_PERSONAL,
+        categoria: document.getElementById('categoriaPersonal').value,
+        descripcion: document.getElementById('descripcionPersonal').value,
+        monto: monto
+      },
+      function (msg) {
+        ocupado('btnPersonal', '', texto);
+        document.getElementById('montoPersonal').value = '';
+        document.getElementById('descripcionPersonal').value = '';
+        mostrar(msg, 'ok');
+        refrescarTotalPersonal();
+      },
+      function (e) {
+        ocupado('btnPersonal', '', texto);
+        mostrar(e.message, 'error');
+      });
+  }
+
+  /* ---- Conciliar ---- */
+
+  function enviarConciliar() {
+    var real = document.getElementById('montoReal').value;
+    if (real === '') return mostrar('Escribí el total real gastado.', 'error');
+
+    ocupado('btnConciliar', 'Comparando...');
+    google.script.run
+      .withSuccessHandler(function (r) {
+        ocupado('btnConciliar', '', 'Comparar');
+        ULTIMA_CONCILIACION = r;
+
+        document.getElementById('resGastos').textContent = r.gastos;
+        document.getElementById('resIngresos').textContent = r.ingresos;
+        document.getElementById('resReal').textContent = r.real;
+        document.getElementById('resDif').textContent = r.diferencia;
+
+        var v = document.getElementById('veredicto');
+        v.textContent = r.mensaje;
+        v.className = 'veredicto ' + (r.hayDiferencia ? 'difiere' : 'ok');
+
+        var esDepto = document.getElementById('destinoConciliar').value === 'depto';
+        document.getElementById('campoPagadoAjuste').classList.toggle('oculto', !esDepto);
+        document.getElementById('zonaAjuste').classList.toggle('oculto', !r.hayDiferencia);
+        document.getElementById('resultado').classList.add('visible');
+      })
+      .withFailureHandler(function (e) {
+        ocupado('btnConciliar', '', 'Comparar');
+        mostrar(e.message, 'error');
+      })
+      .conciliar({
+        destino: document.getElementById('destinoConciliar').value,
+        desde: document.getElementById('desde').value,
+        hasta: document.getElementById('hasta').value,
+        montoReal: real
+      });
+  }
+
+  function cargarAjuste() {
+    if (!ULTIMA_CONCILIACION) return;
+
+    google.script.run
+      .withSuccessHandler(function (msg) {
+        mostrar(msg, 'ok');
+        document.getElementById('resultado').classList.remove('visible');
+        document.getElementById('montoReal').value = '';
+        ULTIMA_CONCILIACION = null;
+        refrescarAcumulado();
+        refrescarTotalPersonal();
+      })
+      .withFailureHandler(function (e) { mostrar(e.message, 'error'); })
+      .registrarAjuste({
+        destino: document.getElementById('destinoConciliar').value,
+        fecha: document.getElementById('hasta').value,
+        monto: ULTIMA_CONCILIACION.diferenciaNumero,
+        pagadoPor: document.getElementById('pagadoAjuste').value,
+        division: '50/50'
+      });
+  }
+
+
+
+
+
+  function desvincularPersonal() {
+    google.script.run
+      .withSuccessHandler(function () {
+        PERSONAL_CARGADO = false;
+        mostrar('Listo. Entrá a Personal y creá una planilla nueva.', 'ok');
+      })
+      .withFailureHandler(function (e) { mostrar(e.message, 'error'); })
+      .desvincularPersonal();
+  }
+
+</script>
+
+</body>
+</html>
