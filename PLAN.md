@@ -19,10 +19,11 @@ de las tablas de etapas es un issue de GitHub.
 
 ## Convenciones
 
-- Git sigue `mateware-github`. `main` es lo instalado; `dev` es la
-  integración; las ramas son `dev/<categoría>/<módulo>/<issue>-<descripción>`;
-  los PR van a `dev` por squash, con título `Tipo(scope): descripción`. El
-  merge `dev` → `main` se hace al instalar, con tag `vNN` (v12, v13...), que
+- Git sigue `mateware-github`. `main` es lo instalado; `develop` es la
+  integración (no se llama `dev` porque git no permite una rama `dev` y
+  ramas `dev/...` a la vez); las ramas son `dev/<categoría>/<módulo>/<issue>-<descripción>`;
+  los PR van a `develop` por squash, con título `Tipo(scope): descripción`. El
+  merge `develop` → `main` se hace al instalar, con tag `vNN` (v12, v13...), que
   sigue la numeración que ya traían los archivos.
 - **Labels**: `type:fix`, `type:feat`, `type:refactor`, `type:chore`, `type:test`,
   `type:docs`; `etapa:0` a `etapa:5`; `ejecuta:claude`, `ejecuta:gemini`,
@@ -44,8 +45,8 @@ código; Claude revisa y verifica todo lo que hace Gemini.
 
 | # | Issue | Tipo | Ejecuta | Depende | Criterio de aceptación |
 |---|---|---|---|---|---|
-| 0.1 | Subir el repo a GitHub, crear `dev`, labels y plantillas de issue/PR | chore | claude | — | `main` y `dev` en el remoto; labels creadas |
-| 0.2 | Arnés de pruebas: cargar el `.js` real de `apps-script/` en Node con `vm` y stubs mínimos (`SpreadsheetApp`, `LockService`, `CacheService`, `Utilities`, `Session`) | test | **gemini** | 0.1 | `node --test pruebas/` corre; `aFecha`/`aNumero` salen del código real, no de una copia |
+| 0.1 | Subir el repo a GitHub, crear `develop`, labels y plantillas de issue/PR | chore | claude | — | `main` y `develop` en el remoto; labels creadas |
+| 0.2 | Arnés de pruebas: cargar el `.js` real de `apps-script/` en Node con `vm` y stubs mínimos (`SpreadsheetApp`, `LockService`, `CacheService`, `Utilities`, `Session`) | test | **gemini** | 0.1 | `node --test` corre; `aFecha`/`aNumero` salen del código real, no de una copia |
 | 0.3 | Pasar las 5 pruebas a `node:test` con `assert` del comportamiento **correcto** | test | **gemini** | 0.2 | Las 5 corren y **fallan** contra v9 (bug presente); el mensaje de cada falla nombra el hallazgo (A1, C1...) |
 
 ### Etapa 1 — Urgente en producción (no espera a v12)
@@ -138,17 +139,19 @@ traspaso ni `.clasp.json`.
 **Lanzamiento.**
 
 ```
-bash ~/.claude/skills/gestion-agentes-gemini/scripts/agy-run.sh <issue> <prompt.txt> ~/agy-trabajo/gastos/<issue>
+bash ~/.claude/skills/gestion-agentes-gemini/scripts/agy-run.sh issue<N> ~/agy-trabajo/gastos/prompt-<N>.txt ~/agy-trabajo/gastos/<N> "Gemini 3.8 Flash (High)"
 ```
 
-Con `run_in_background`; el progreso se sigue en `<issue>.log`.
+El modelo va explícito: el default del lanzador ("Gemini 3.1 Pro (High)") ya no
+existe en `agy`, y Gemini 3.8 Flash es el único Gemini disponible. Con
+`run_in_background`; el progreso se sigue en `<issue>.log`.
 
 **Bloque de herramientas** (al principio de cada prompt):
 
 ```
 HERRAMIENTAS (ya instaladas y verificadas; usá solo estas, con estos comandos):
-- Pruebas: `node --test pruebas/` (Node 22, sin dependencias). Es la única
-  forma de verificar tu trabajo; pegá la salida completa en tu respuesta.
+- Pruebas: `node --test` desde la raíz (Node 22, sin dependencias; descubre
+  solo `*.test.js`). Es la única forma de verificar tu trabajo; pegá la salida completa en tu respuesta.
 - Archivos: leé con tu herramienta de lectura; escribí solo en esta carpeta.
 - RAM: tenés 1 GB; esta tarea no necesita más.
 
@@ -169,8 +172,7 @@ textuales.
 
 **Verificación de Claude, siempre, antes de abrir el PR:**
 
-1. Copiar el archivo devuelto a la rama del issue y correr `node --test
-   pruebas/` en el repo: tiene que pasar todo, no solo la prueba del issue.
+1. Copiar el archivo devuelto a la rama del issue y correr `node --test` en el repo: tiene que pasar todo, no solo la prueba del issue.
 2. `git diff`: ningún cambio fuera de lo que pide el issue (Gemini tiende a
    "mejorar" lo que no se le pidió).
 3. Comprobar que no se tocaron las pruebas.
