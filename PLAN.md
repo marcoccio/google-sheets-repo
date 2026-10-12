@@ -14,7 +14,7 @@ de las tablas de etapas es un issue de GitHub.
 | Zona horaria | H1 solo en el frontend | **También en el servidor**: `appsscript.json` tiene `timeZone: UTC` y la planilla tiene `Etc/UTC`. `Código.js:785` arma con eso la fecha `dd/MM` de las notas de la planilla personal: después de las 21 h queda anotado el día siguiente. Pega en la migración (Fase 3), que lee esas notas |
 | H1 | 3 usos en `Web.html` | También en `Panel.html:250` (la barra lateral de la planilla) |
 | C1, idempotencia | Gastos, servicios e ingresos | **También `guardarMovimientoPersonal`**: pasa por el mismo watchdog, **no tiene lock** y **suma** sobre la celda. Un reintento ahí no agrega una fila: infla un total |
-| G2, eliminar el recordatorio | Borrar los disparadores a mano después | Si se instala v12 sin `revisarActividad`, los disparadores que siguen vivos fallan todos los días. Conviene dejar un `revisarActividad` mínimo que borre su propio disparador: se limpia solo en la cuenta de cada uno, sin que Flor tenga que entrar a script.google.com |
+| G2, eliminar el recordatorio | Borrar los disparadores a mano después | El orden importa: hay que borrarlos **antes** de instalar v12. Si v12 entra sin `revisarActividad` y un disparador sigue vivo, falla todos los días a las 20 h y Google le manda un mail de error a su dueño. Se borran a mano, cada uno en su cuenta (issue 2.8) |
 | Producción | Una sola | **Dos** (ver `CLAUDE.md`, "Despliegue con clasp"): `clasp push` cambia al instante la barra lateral, las funciones personalizadas y los disparadores. La web app del celular solo cambia con `clasp deploy` |
 
 ## Convenciones
@@ -36,7 +36,8 @@ de las tablas de etapas es un issue de GitHub.
 
 ## Etapas
 
-`#` es provisorio hasta crear los issues. **Ejecuta** dice quién escribe el
+`#` es el número del plan; cada issue lo lleva entre corchetes al principio
+del título (`[2.4] ...`). **Ejecuta** dice quién escribe el
 código; Claude revisa y verifica todo lo que hace Gemini.
 
 ### Etapa 0 — Base para trabajar sin tocar producción
@@ -75,7 +76,7 @@ arreglo se vea como un diff limpio.
 | 2.5 | **H1**: fechas locales en `Web.html` (3 usos) y `Panel.html:250` | fix | **gemini** | 2.1 | Prueba H1 pasa con `TZ=America/Argentina/Mendoza` a las 21:00, 22:30 y 23:59. No queda ningún `toISOString().slice(0, 10)` |
 | 2.6 | **H2**: si hubo adjunto y falló la lectura (más de 8 MB u `onerror`), cortar y no guardar | fix | **gemini** | 2.1 | Prueba H2: con 9 MB no se llama al servidor y el error queda en pantalla |
 | 2.7 | **H3 + M2**: el borrador guarda selectores y fechas y se restaura después de `aplicarMiNombre()`; avisa que el comprobante se pierde; botón "Recargar" en vez de `location.reload()` | fix | claude | 2.4 | Prueba H3: vuelve "pagó Flor" |
-| 2.8 | **G2**: `revisarActividad` mínimo que borra su propio disparador | chore | claude | 2.1 | Prueba con stub de `ScriptApp`: borra solo los disparadores de `revisarActividad` |
+| 2.8 | **G2**: Marcos y Flor borran a mano, cada uno con su cuenta, el disparador `revisarActividad` en script.google.com/home/triggers | chore | marcos (+ Flor) | — | Los dos confirman que en su lista no queda ningún disparador de este proyecto |
 | 2.9 | **B2 + B4**: sacar "Ajuste" de las categorías elegibles a mano de la personal; sacar `maximum-scale=1` | fix | claude | 2.1 | Revisión de diff |
 | 2.10 | Instalar v12 | chore | marcos + claude | 2.2–2.9 | Push → prueba en `/dev` desde el teléfono (Enter, `showPicker()`, botón Recargar, borrador) → deploy → totales iguales. Tag `v12`. `toca-produccion` |
 
