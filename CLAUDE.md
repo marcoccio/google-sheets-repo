@@ -20,12 +20,32 @@ tocar código o datos. Este archivo no lo repite.
   sin modificar. Los nombres de archivo tienen que quedar planos e iguales a
   los del proyecto (`Código.js`, `Web.html`, `Panel.html`): una subcarpeta
   cambia el nombre remoto y rompe `createHtmlOutputFromFile('Web')`.
-- `gs_code/` y `html/` guardan versiones numeradas de referencia
-  (`Codigo_v9.gs`, `Web_v9.html`, ...).
-- `Finanzas.js` es la librería `google-sheets-argento` pegada tal cual;
-  `Indices.js` usa su `bcraVariables()`. No se edita.
-- `clasp pull` / `clasp show-file-status` son seguros. **`clasp push` pisa el
-  proyecto en producción**: solo con confirmación de Marcos.
+- `referencia/` guarda las versiones numeradas que entregó Claude Desktop
+  (`Codigo_v9.gs`, `Codigo_v11.gs`, `Web_v8.html`, `Web_v9.html`,
+  `Panel_v2.html`, `Indices.gs`). Verificado el 12/10/2026: lo desplegado es
+  exactamente v9 + Web_v8 + Panel_v2 + Indices. No se editan.
+- `Finanzas.js` es la librería `google-sheets-argento` pegada tal cual. No se
+  edita.
+- **`PLAN.md`** tiene las etapas, los issues y cómo se delega a Gemini.
+
+## Despliegue con clasp
+
+El script está vinculado a la planilla, así que hay dos "producciones":
+
+- **HEAD**: lo que corre el menú y el `Panel.html` de la planilla, las funciones
+  personalizadas (`iclAcumulado`, ...) y los disparadores. **`clasp push`
+  cambia HEAD al instante.**
+- **Web app (celular)**: la implementación `AKfycby7a82T...` fijada en la
+  versión 6. No cambia con `clasp push`; solo con
+  `clasp deploy -i <id> -V <versión>`. Se prueba antes en la URL `/dev`
+  (implementación @HEAD). Para volver atrás: redesplegar con `-V 6`.
+
+`clasp pull`, `clasp show-file-status` y `clasp list-deployments` son seguros.
+`clasp push` y `clasp deploy` solo con confirmación de Marcos.
+
+El MCP de Google Sheets tiene acceso de lectura a la planilla compartida: sirve
+para verificar los totales de control (hoja Resumen) antes y después de
+instalar.
 
 ## Pruebas
 
