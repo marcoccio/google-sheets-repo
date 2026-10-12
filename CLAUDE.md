@@ -58,22 +58,15 @@ falla). Un archivo puntual: `node --test pruebas/arnes.test.js`.
 (`cargarServidor`, `cargarHtml`). Las pruebas nuevas usan el arnés; nunca
 copian funciones del código.
 
-Los `test_*.js` viejos son scripts que imprimen el bug (sin asserts); el #3 los
-pasa a `node:test`:
+`pruebas/planilla_falsa.js` (`crearServicios`) simula en memoria
+SpreadsheetApp, LockService, CacheService, PropertiesService, Session y
+Utilities para las pruebas del servidor.
 
-```bash
-node pruebas/test_fecha_y_monto.js                  # A1 + aNumero 9/9
-node pruebas/test_watchdog_duplica.js               # C1, tarda 26 s
-TZ=America/Argentina/Mendoza node pruebas/test_zona_horaria.js  # H1
-node pruebas/test_adjunto_descartado.js             # H2
-node pruebas/test_borrador_pagador.js               # H3
-```
-
-- `pruebas/test_fecha_y_monto.js` tiene `aFecha`/`aNumero` **copiadas** de
-  `Codigo_v11.gs`. Una vez que el código esté en el repo, hay que extraerlas
-  del archivo real para que la prueba siga al código.
-- Las otras cuatro **simulan** la lógica del frontend (dependen del navegador o
-  de `google.script.run`). No reemplazan probar en el teléfono.
+Las pruebas con el código de un hallazgo en el nombre (`A1: ...`, `C1: ...`)
+**fallan a propósito hasta que se arregla ese hallazgo**; las `CONTROL` pasan
+siempre. Antes de v12, `node --test` sale con error: lo que importa es que no
+falle ninguna `CONTROL` y que cada falla sea del hallazgo esperado. La tabla de
+archivos está en `README.md`.
 
 ## Arquitectura (lo que cruza archivos)
 
