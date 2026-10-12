@@ -1,0 +1,19 @@
+# Claude Code: configuración local y estado de herramientas
+.claude/settings.local.json
+.claude/.headroom_*
+
+# clasp: credenciales (normalmente viven en ~, por si se crean acá)
+.clasprc.json
+
+# Node
+node_modules/
+
+# Secretos y claves
+.env
+*.pem
+*-key.json
+service-account*.json
+
+# Sistema
+.DS_Store
+*.swp
