@@ -42,25 +42,45 @@ function ipcAcumulado(desde) {
  *
  * @return {number} El idVariable del ICL.
  */
+// La v3 se dio de baja (HTTP 410) en 2026. Si la v4 corre la misma suerte,
+// el error de la celda lo va a decir con el mismo codigo.
+var BCRA_MONETARIAS = 'https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias';
+
 function idVariableICL() {
   var cache = CacheService.getScriptCache();
   var guardado = cache.get('ID_ICL');
   if (guardado) return Number(guardado);
 
-  var url = 'https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias';
-  var data = JSON.parse(UrlFetchApp.fetch(url).getContentText());
+  // El listado viene paginado (1000 por pagina, mas de 1600 variables).
+  var offset = 0, total = 1;
+  while (offset < total) {
+    var data = JSON.parse(UrlFetchApp.fetch(BCRA_MONETARIAS + '?limit=1000&offset=' + offset)
+                                     .getContentText());
+    if (!data.results || !data.metadata) throw new Error('No pude leer las variables del BCRA.');
 
-  if (!data.results) throw new Error('No pude leer las variables del BCRA.');
-
-  for (var i = 0; i < data.results.length; i++) {
-    var d = String(data.results[i].descripcion).toLowerCase();
-    if (d.indexOf('icl') !== -1 || d.indexOf('contratos de locac') !== -1) {
-      cache.put('ID_ICL', String(data.results[i].idVariable), 21600);
-      return data.results[i].idVariable;
+    for (var i = 0; i < data.results.length; i++) {
+      var d = String(data.results[i].descripcion).toLowerCase();
+      if (d.indexOf('icl') !== -1 || d.indexOf('contratos de locac') !== -1) {
+        cache.put('ID_ICL', String(data.results[i].idVariable), 21600);
+        return data.results[i].idVariable;
+      }
     }
+
+    total = data.metadata.resultset.count;
+    offset += data.results.length;
+    if (!data.results.length) break;
   }
 
   throw new Error('No encontre el ICL entre las variables del BCRA.');
+}
+
+
+/** Valores del ICL entre dos fechas 'yyyy-MM-dd', en el orden que los da el BCRA. */
+function serieICL(desdeTexto, hastaTexto) {
+  var url = BCRA_MONETARIAS + '/' + idVariableICL() +
+            '?desde=' + desdeTexto + '&hasta=' + hastaTexto + '&limit=3000';
+  var data = JSON.parse(UrlFetchApp.fetch(url).getContentText());
+  return (data.results && data.results[0] && data.results[0].detalle) || [];
 }
 
 
@@ -75,24 +95,20 @@ function idVariableICL() {
 function iclAcumulado(desde) {
   if (!desde) throw new Error('Falta la fecha de inicio.');
 
-  var id = idVariableICL();
   var inicio = new Date(desde);
 
   var hasta = new Date();
   var desdeTexto = Utilities.formatDate(inicio, 'GMT-3', 'yyyy-MM-dd');
   var hastaTexto = Utilities.formatDate(hasta, 'GMT-3', 'yyyy-MM-dd');
 
-  var url = 'https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias/' + id +
-            '?desde=' + desdeTexto + '&hasta=' + hastaTexto + '&limit=3000';
+  var datos = serieICL(desdeTexto, hastaTexto);
 
-  var data = JSON.parse(UrlFetchApp.fetch(url).getContentText());
-
-  if (!data.results || data.results.length < 2) {
+  if (datos.length < 2) {
     throw new Error('El BCRA no devolvio suficientes datos de ICL.');
   }
 
   // Ordenar por fecha ascendente.
-  var serie = data.results.slice().sort(function (a, b) {
+  var serie = datos.slice().sort(function (a, b) {
     return new Date(a.fecha) - new Date(b.fecha);
   });
 
@@ -113,16 +129,12 @@ function iclAcumulado(desde) {
  * @customfunction
  */
 function icl(fecha) {
-  var id = idVariableICL();
   var f = fecha ? new Date(fecha) : new Date();
   var texto = Utilities.formatDate(f, 'GMT-3', 'yyyy-MM-dd');
 
-  var url = 'https://api.bcra.gob.ar/estadisticas/v3.0/Monetarias/' + id +
-            '?desde=' + texto + '&hasta=' + texto;
+  var datos = serieICL(texto, texto);
 
-  var data = JSON.parse(UrlFetchApp.fetch(url).getContentText());
-
-  if (data.results && data.results.length) return Number(data.results[0].valor);
+  if (datos.length) return Number(datos[0].valor);
 
   throw new Error('No hay dato de ICL para esa fecha.');
 }
