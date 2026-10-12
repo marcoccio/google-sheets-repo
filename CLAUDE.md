@@ -49,9 +49,17 @@ instalar.
 
 ## Pruebas
 
-Node 22, sin dependencias ni `package.json`. Cada archivo reproduce un bug y
-**hoy imprime el bug** (no hay asserts ni código de salida): después del
-arreglo, la salida tiene que mostrar el comportamiento correcto.
+Node 22, sin dependencias ni `package.json`. `node --test` desde la raíz corre
+los `pruebas/*.test.js` (no le pases `pruebas/`: Node 22 lo toma como archivo y
+falla). Un archivo puntual: `node --test pruebas/arnes.test.js`.
+
+`pruebas/arnes.js` carga el código **real** de `apps-script/` en un contexto
+`node:vm` con stubs de los servicios de Google y del navegador
+(`cargarServidor`, `cargarHtml`). Las pruebas nuevas usan el arnés; nunca
+copian funciones del código.
+
+Los `test_*.js` viejos son scripts que imprimen el bug (sin asserts); el #3 los
+pasa a `node:test`:
 
 ```bash
 node pruebas/test_fecha_y_monto.js                  # A1 + aNumero 9/9
