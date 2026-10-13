@@ -123,7 +123,7 @@ function crearHojaObj(hojaData) {
   };
 }
 
-function crearPlanillaObj(planillaData) {
+function crearPlanillaObj(planillaData, zona = 'UTC') {
   return {
     getId() {
       return planillaData.id;
@@ -133,6 +133,9 @@ function crearPlanillaObj(planillaData) {
     },
     getUrl() {
       return `https://docs.google.com/spreadsheets/d/${planillaData.id}`;
+    },
+    getSpreadsheetTimeZone() {
+      return zona;
     },
     getSheetByName(nombre) {
       const hojaData = planillaData.hojas.get(nombre);
@@ -189,7 +192,11 @@ function crearPropertiesStore() {
   };
 }
 
-function crearServicios(planillas = {}) {
+// En Apps Script new Date(año, mes, día) se arma en la zona del script, y en Node
+// en la zona del proceso (process.env.TZ); por eso una prueba que usa opciones.zona
+// tiene que poner process.env.TZ igual a esa zona antes de cargar el código.
+function crearServicios(planillas = {}, opciones = {}) {
+  const zona = (opciones && opciones.zona) || 'UTC';
   const planillasStore = new Map();
 
   for (const [idPlanilla, hojas] of Object.entries(planillas)) {
@@ -215,7 +222,7 @@ function crearServicios(planillas = {}) {
       if (!pData) {
         throw new Error(`SpreadsheetApp.openById: Planilla no encontrada con id ${id}`);
       }
-      return crearPlanillaObj(pData);
+      return crearPlanillaObj(pData, zona);
     },
     flush() {}
   };
@@ -253,7 +260,7 @@ function crearServicios(planillas = {}) {
 
   const Session = {
     getScriptTimeZone() {
-      return 'America/Argentina/Mendoza';
+      return zona;
     },
     getEffectiveUser() {
       return {
@@ -272,7 +279,7 @@ function crearServicios(planillas = {}) {
   };
 
   const Utilities = {
-    formatDate(fecha, _zona, formato) {
+    formatDate(fecha, zona, formato) {
       if (formato !== 'dd/MM' && formato !== 'dd/MM/yyyy' && formato !== 'yyyy-MM-dd') {
         throw new Error(`Formato no soportado: ${formato}`);
       }
@@ -280,11 +287,21 @@ function crearServicios(planillas = {}) {
       if (Number.isNaN(ts)) {
         throw new Error('Fecha inválida');
       }
-      // Hora de Argentina: UTC-3 fijo
-      const d = new Date(ts - 3 * 60 * 60 * 1000);
-      const yyyy = String(d.getUTCFullYear());
-      const MM = String(d.getUTCMonth() + 1).padStart(2, '0');
-      const dd = String(d.getUTCDate()).padStart(2, '0');
+      const dtf = new Intl.DateTimeFormat('en-CA', {
+        timeZone: zona,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const parts = dtf.formatToParts(new Date(ts));
+      let yyyy = '';
+      let MM = '';
+      let dd = '';
+      for (const part of parts) {
+        if (part.type === 'year') yyyy = part.value;
+        else if (part.type === 'month') MM = part.value;
+        else if (part.type === 'day') dd = part.value;
+      }
 
       if (formato === 'dd/MM') return `${dd}/${MM}`;
       if (formato === 'dd/MM/yyyy') return `${dd}/${MM}/${yyyy}`;
