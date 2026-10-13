@@ -1085,12 +1085,39 @@
    * la pagina quedo abierta mucho rato) y no dispara ni el success ni el
    * failure: el boton se queda en "Guardando..." para siempre. Esto corta
    * esa espera y deja reintentar.
+   *
+   * Que se corte la espera no quiere decir que el servidor no haya escrito
+   * (C1). Cada envio lleva un idEnvio, y el servidor no escribe dos veces el
+   * mismo. Si se corta la espera, el reintento del MISMO envio reusa el id;
+   * si el servidor contesto (bien o mal), el proximo envio lleva uno nuevo.
    */
   var FALLAS_SEGUIDAS = 0;
   var ESPERA_MS = 15000;
+  var ESPERA_CON_ADJUNTO_MS = 45000;
+  var ENVIOS_SIN_RESPUESTA = {};
+
+  /** Identifica el contenido de un envio, sin los datos del adjunto. */
+  function firmaEnvio(nombreFuncion, argumento) {
+    return nombreFuncion + JSON.stringify(argumento, function (clave, valor) {
+      return (clave === 'datos' || clave === 'idEnvio') ? undefined : valor;
+    });
+  }
 
   function llamar(nombreFuncion, argumento, alSalirBien, alFallar) {
     var terminado = false;
+
+    var firma = firmaEnvio(nombreFuncion, argumento);
+    var pendiente = ENVIOS_SIN_RESPUESTA[nombreFuncion];
+    argumento.idEnvio = (pendiente && pendiente.firma === firma)
+      ? pendiente.id
+      : Date.now().toString(36) + Math.random().toString(36).slice(2);
+    ENVIOS_SIN_RESPUESTA[nombreFuncion] = { id: argumento.idEnvio, firma: firma };
+
+    // Una respuesta que llega despues del corte no libera el id: la pantalla
+    // sigue diciendo "No sé si se guardó", y el reintento tiene que reusarlo.
+    function contesto() {
+      delete ENVIOS_SIN_RESPUESTA[nombreFuncion];
+    }
 
     var reloj = setTimeout(function () {
       if (terminado) return;
@@ -1102,14 +1129,15 @@
         mostrar('La conexión se cortó. Recargando…', 'error');
         setTimeout(function () { location.reload(); }, 1200);
       } else {
-        alFallar({ message: 'No respondió el servidor. Probá de nuevo.' });
+        alFallar({ message: 'No sé si se guardó. Reintentar no duplica.' });
       }
-    }, ESPERA_MS);
+    }, argumento.comprobante ? ESPERA_CON_ADJUNTO_MS : ESPERA_MS);
 
     google.script.run
       .withSuccessHandler(function (r) {
         if (terminado) return;
         terminado = true;
+        contesto();
         clearTimeout(reloj);
         FALLAS_SEGUIDAS = 0;
         alSalirBien(r);
@@ -1117,6 +1145,7 @@
       .withFailureHandler(function (e) {
         if (terminado) return;
         terminado = true;
+        contesto();
         clearTimeout(reloj);
         FALLAS_SEGUIDAS++;
         alFallar(e);
