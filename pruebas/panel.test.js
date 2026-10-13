@@ -18,6 +18,10 @@ function panel() {
   const doc = crearDocumento();
   doc.elementos.set('pagadoPor', crearSelect('pagadoPor', ['Marcos', 'Flor'], 0));
   doc.elementos.set('pagoServicio', crearSelect('pagoServicio', ['Marcos', 'Flor'], 0));
+  // llenar() usa appendChild, que el DOM falso no implementa: los selectores
+  // que llena el servidor se arman ya con sus opciones.
+  doc.elementos.set('servicio', crearSelect('servicio', ['Internet']));
+  doc.elementos.set('mes', crearSelect('mes', ['Octubre']));
   const ctx = cargarHtml('Panel.html', { document: doc });
   ctx.dispararEvento('load');
   ctx.llamadas.find(l => l.nombre === 'obtenerOpciones').exito(OPCIONES);
