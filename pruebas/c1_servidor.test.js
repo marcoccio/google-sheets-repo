@@ -54,7 +54,7 @@ function crearEntorno() {
   return { ctx, servicios };
 }
 
-test('C1: guardarGasto con el mismo idEnvio dos veces: queda UNA fila nueva en la hoja y las dos llamadas devuelven el mismo texto', () => {
+test('C1: guardarGasto con el mismo idEnvio dos veces: queda UNA fila nueva y la segunda responde "Ya estaba guardado"', () => {
   const { ctx, servicios } = crearEntorno();
   const envio = {
     idEnvio: 'envio-gasto-1',
@@ -74,10 +74,10 @@ test('C1: guardarGasto con el mismo idEnvio dos veces: queda UNA fila nueva en l
   const filasNuevas = filas.slice(1);
 
   assert.equal(filasNuevas.length, 1);
-  assert.equal(res1, res2);
+  assert.equal(res2, 'Ya estaba guardado. ' + res1); // #48: distinto a propósito
 });
 
-test('C1: guardarServicio con el mismo idEnvio dos veces: queda UNA fila nueva en la hoja y las dos llamadas devuelven el mismo texto', () => {
+test('C1: guardarServicio con el mismo idEnvio dos veces: queda UNA fila nueva y la segunda responde "Ya estaba guardado"', () => {
   const { ctx, servicios } = crearEntorno();
   const envio = {
     idEnvio: 'envio-serv-1',
@@ -95,10 +95,10 @@ test('C1: guardarServicio con el mismo idEnvio dos veces: queda UNA fila nueva e
   const filasNuevas = filas.slice(1);
 
   assert.equal(filasNuevas.length, 1);
-  assert.equal(res1, res2);
+  assert.equal(res2, 'Ya estaba guardado. ' + res1); // #48: distinto a propósito
 });
 
-test('C1: guardarIngreso con el mismo idEnvio dos veces: queda UNA fila nueva en la hoja y las dos llamadas devuelven el mismo texto', () => {
+test('C1: guardarIngreso con el mismo idEnvio dos veces: queda UNA fila nueva y la segunda responde "Ya estaba guardado"', () => {
   const { ctx, servicios } = crearEntorno();
   const envio = {
     idEnvio: 'envio-ing-1',
@@ -116,7 +116,7 @@ test('C1: guardarIngreso con el mismo idEnvio dos veces: queda UNA fila nueva en
   const filasNuevas = filas.slice(1);
 
   assert.equal(filasNuevas.length, 1);
-  assert.equal(res1, res2);
+  assert.equal(res2, 'Ya estaba guardado. ' + res1); // #48: distinto a propósito
 });
 
 test('C1: guardarMovimientoPersonal con el mismo idEnvio dos veces: la celda de la categoría en el mes 10 (columna K) suma 8000 UNA vez', () => {
@@ -131,8 +131,9 @@ test('C1: guardarMovimientoPersonal con el mismo idEnvio dos veces: la celda de 
   };
 
   const previo = 1000;
-  ctx.guardarMovimientoPersonal(envio);
-  ctx.guardarMovimientoPersonal(envio);
+  const res1 = ctx.guardarMovimientoPersonal(envio);
+  const res2 = ctx.guardarMovimientoPersonal(envio);
+  assert.equal(res2, 'Ya estaba guardado. ' + res1); // #48
 
   const filas = servicios.hoja('PERSONAL', 'Gastos');
   const valorFinal = filas[4][10];
