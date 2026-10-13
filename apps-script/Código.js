@@ -147,18 +147,40 @@ function aNumero(valor, campo) {
 
 /**
  * Escribe un numero en una celda y vuelve a leerla para confirmar.
- * Si no quedo, avisa en vez de decir que se guardo.
+ * Si no quedo, restaura el valor anterior antes de avisar: en la personal
+ * las celdas acumulan, y un reintento sumaria sobre el valor malo.
  */
 function escribirYVerificar(celda, valor, donde) {
+  var anterior = celda.getValue();
   celda.setValue(valor);
   SpreadsheetApp.flush();
 
   var leido = celda.getValue();
   if (typeof leido !== 'number' || Math.abs(leido - valor) > 0.01) {
+    celda.setValue(anterior);
+    SpreadsheetApp.flush();
+    var restaurado = celda.getValue();
+    if (restaurado !== anterior) {
+      throw new Error('No se pudo guardar en ' + (donde || 'la planilla') +
+                      ' y la celda quedo con "' + restaurado + '". Revisala a mano antes de reintentar.');
+    }
     throw new Error('No se pudo guardar en ' + (donde || 'la planilla') +
-                    '. La celda quedo con "' + leido + '". No se guardo nada.');
+                    '. Quedo el valor anterior; no se guardo nada.');
   }
   return leido;
+}
+
+
+/**
+ * Borra una fila recien escrita cuya relectura no coincidio y avisa.
+ * Si la fila quedara, el reintento la duplicaria.
+ * ponytail: si habia comprobante, el archivo queda huerfano en la carpeta de
+ * comprobantes (el reintento sube otro). Borrarlo si llega a molestar.
+ */
+function deshacerFila(hoja, fila, columnas, queCosa) {
+  hoja.getRange(fila, 1, 1, columnas).clearContent();
+  SpreadsheetApp.flush();
+  throw new Error(queCosa + ' no quedo bien escrito, asi que no se guardo. Proba de nuevo.');
 }
 
 
@@ -372,7 +394,7 @@ function guardarGasto(d) {
 
     SpreadsheetApp.flush();
     if (Number(hoja.getRange(fila, 5).getValue()) !== monto) {
-      throw new Error('La fila no quedo bien escrita. Revisa la planilla.');
+      deshacerFila(hoja, fila, 7, 'El gasto');
     }
 
     if (link) hoja.getRange(fila, 12).setFormula('=HYPERLINK("' + link + '";"Ver")');
@@ -409,7 +431,7 @@ function guardarServicio(d) {
 
     SpreadsheetApp.flush();
     if (Number(hoja.getRange(fila, 4).getValue()) !== monto) {
-      throw new Error('El pago no quedo bien escrito. Revisa la planilla.');
+      deshacerFila(hoja, fila, 5, 'El pago');
     }
 
     if (link) hoja.getRange(fila, 6).setFormula('=HYPERLINK("' + link + '";"Ver")');
@@ -444,7 +466,7 @@ function guardarIngreso(d) {
 
     SpreadsheetApp.flush();
     if (Number(hoja.getRange(fila, 3).getValue()) !== monto) {
-      throw new Error('El ingreso no quedo bien escrito. Revisa la planilla.');
+      deshacerFila(hoja, fila, 4, 'El ingreso');
     }
 
     if (link) hoja.getRange(fila, 5).setFormula('=HYPERLINK("' + link + '";"Ver")');
