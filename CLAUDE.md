@@ -63,10 +63,13 @@ SpreadsheetApp, LockService, CacheService, PropertiesService, Session y
 Utilities para las pruebas del servidor.
 
 Las pruebas con el código de un hallazgo en el nombre (`A1: ...`, `C1: ...`)
-**fallan a propósito hasta que se arregla ese hallazgo**; las `CONTROL` pasan
-siempre. Antes de v12, `node --test` sale con error: lo que importa es que no
-falle ninguna `CONTROL` y que cada falla sea del hallazgo esperado. La tabla de
-archivos está en `README.md`.
+se escriben **antes** del arreglo y fallan hasta que se arregla; las `CONTROL`
+pasan siempre. En `develop`, `node --test` tiene que salir en verde. La tabla
+de archivos está en `README.md`.
+
+**Límite conocido (#43):** hasta que se resuelva, el doble de planilla ignora
+la zona horaria y formatea siempre en UTC−3, mientras producción está en UTC.
+Una prueba de fechas del servidor que pasa no prueba nada sobre producción.
 
 ## Arquitectura (lo que cruza archivos)
 
@@ -79,8 +82,13 @@ archivos está en `README.md`.
   por número de fila.
 - La planilla está en español: las fórmulas usan `;` como separador. Con `,`
   dan `#ERROR!`.
-- Escrituras del servidor van dentro de un lock; la idempotencia de C1 se
-  resuelve con una clave por envío chequeada en CacheService dentro del lock.
+- Escrituras del servidor van por `unaVez()`: lock + `idEnvio` en
+  CacheService, chequeado y grabado dentro del mismo lock. La clave se graba
+  solo si el guardado terminó bien. El cliente (`llamar()`) reusa el
+  `idEnvio` mientras el envío no tenga una respuesta **exitosa** y el
+  contenido (sin el adjunto) sea el mismo; los envíos pendientes viajan en el
+  borrador. Todo formulario de la web app que escriba pasa por `llamar()`
+  (el panel lateral no: corre en la PC, ver #46).
 - Montos: `aNumero` aplica la regla argentina (`"15.250"` = quince mil
   doscientos cincuenta). Es acordado, no es bug.
 
