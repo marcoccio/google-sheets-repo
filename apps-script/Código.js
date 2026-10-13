@@ -403,7 +403,8 @@ function unaVez(d, guardar) {
     var cache = CacheService.getScriptCache();
     var clave = d && d.idEnvio ? 'envio:' + d.idEnvio : '';
     var previo = clave ? cache.get(clave) : null;
-    if (previo !== null) return previo;
+    // Distinto del guardado nuevo: quien queria cargar dos iguales se entera.
+    if (previo !== null) return 'Ya estaba guardado. ' + previo;
 
     var resultado = guardar(d);
     if (clave) cache.put(clave, resultado, 21600);
