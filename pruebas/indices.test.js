@@ -55,17 +55,20 @@ function bcraFalso() {
   return { fetch, pedidos };
 }
 
-function cargar() {
+// La fecha la arma la planilla en SU zona (DATE(2026;5;1) = medianoche en esa
+// zona). Indices.js tiene que formatearla en esa misma zona (#47).
+function cargar(zonaPlanilla = 'America/Argentina/Mendoza') {
   const bcra = bcraFalso();
   const ctx = cargarServidor(['Indices.js'], {
     UrlFetchApp: { fetch: bcra.fetch },
     CacheService: { getScriptCache: () => ({ get: () => null, put: () => {} }) },
-    // Indices.js solo usa formatDate(fecha, 'GMT-3', 'yyyy-MM-dd').
+    SpreadsheetApp: { getActiveSpreadsheet: () => ({ getSpreadsheetTimeZone: () => zonaPlanilla }) },
     Utilities: {
       formatDate: (fecha, zona, formato) => {
-        assert.equal(zona, 'GMT-3');
         assert.equal(formato, 'yyyy-MM-dd');
-        return new Date(fecha.getTime() - 3 * 3600 * 1000).toISOString().slice(0, 10);
+        // Apps Script acepta 'GMT-3'; Intl lo escribe 'Etc/GMT+3' (signo invertido).
+        const tz = zona === 'GMT-3' ? 'Etc/GMT+3' : zona;
+        return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(fecha);
       }
     }
   });
@@ -89,4 +92,11 @@ test('iclAcumulado usa la API v4 y da el cociente entre el ultimo y el primer va
 test('icl devuelve el valor de una fecha puntual', () => {
   const { ctx } = cargar();
   assert.equal(ctx.icl(new Date(Date.UTC(2026, 6, 1, 12))), 34.5);
+});
+
+test('#47: con la planilla en UTC, el 01/05 se consulta como 2026-05-01 y no como 30/04', () => {
+  const { ctx, pedidos } = cargar('Etc/UTC');
+  ctx.iclAcumulado(new Date(Date.UTC(2026, 4, 1))); // DATE(2026;5;1) en una planilla en UTC
+  const serie = pedidos.find(u => u.includes('/Monetarias/40'));
+  assert.match(serie, /desde=2026-05-01/);
 });
