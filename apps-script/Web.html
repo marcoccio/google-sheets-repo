@@ -1044,13 +1044,12 @@
 
   /** Lee el archivo y devuelve una promesa con {nombre, tipo, datos}. */
   function leerArchivo(idInput) {
-    return new Promise(function (resolver) {
+    return new Promise(function (resolver, rechazar) {
       var f = document.getElementById(idInput).files[0];
       if (!f) return resolver(null);
 
       if (f.size > 8 * 1024 * 1024) {
-        mostrar('El archivo supera los 8 MB. Probá con una foto más liviana.', 'error');
-        return resolver(null);
+        return rechazar(new Error('El archivo supera los 8 MB. Probá con una foto más liviana.'));
       }
 
       var lector = new FileReader();
@@ -1061,7 +1060,9 @@
           datos: lector.result.split(',')[1]
         });
       };
-      lector.onerror = function () { resolver(null); };
+      lector.onerror = function () {
+        rechazar(new Error('No pude leer el archivo. Probá elegirlo de nuevo.'));
+      };
       lector.readAsDataURL(f);
     });
   }
@@ -1213,6 +1214,9 @@
           ocupado('btnGasto', '', 'Guardar gasto');
           mostrar(e.message, 'error');
         });
+    }, function (e) {
+      ocupado('btnGasto', '', 'Guardar gasto');
+      mostrar(e.message, 'error');
     });
   }
 
@@ -1243,6 +1247,9 @@
           ocupado('btnServicio', '', 'Guardar servicio');
           mostrar(e.message, 'error');
         });
+    }, function (e) {
+      ocupado('btnServicio', '', 'Guardar servicio');
+      mostrar(e.message, 'error');
     });
   }
 
@@ -1274,6 +1281,9 @@
           ocupado('btnIngreso', '', 'Guardar ingreso');
           mostrar(e.message, 'error');
         });
+    }, function (e) {
+      ocupado('btnIngreso', '', 'Guardar ingreso');
+      mostrar(e.message, 'error');
     });
   }
 
