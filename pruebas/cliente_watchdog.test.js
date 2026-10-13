@@ -354,3 +354,87 @@ test('C1: si cambia el contenido después del timeout, otro idEnvio', async () =
   assert.equal(envios.length, 2);
   assert.notEqual(envios[1].args[0].idEnvio, envios[0].args[0].idEnvio);
 });
+
+function almacenamiento() {
+  const S = new Map();
+  S.getItem = k => (S.has(String(k)) ? S.get(String(k)) : null);
+  S.setItem = (k, v) => S.set(String(k), String(v));
+  S.removeItem = k => S.delete(String(k));
+  return S;
+}
+
+const OPCIONES_MINIMAS = {
+  yo: { nombre: 'Marcos', seguro: true, mail: 'marcos@example.com' },
+  categorias: [], servicios: [], meses: [], personales: { Gastos: [] },
+  conceptosIngreso: [], detalles: {}
+};
+
+test('M2: con dos cortes seguidos aparece Recargar, y recarga solo al tocarlo', async () => {
+  const { ctx, disparar, esperarTicks, obtenerRecargas } = crearAmbiente();
+  const boton = ctx.document.getElementById('btnRecargar');
+  boton.classList.add('oculto'); // como en el HTML
+  ctx.document.getElementById('monto').value = '8000';
+
+  for (let i = 0; i < 2; i++) {
+    ctx.enviarGasto();
+    await esperarTicks();
+    disparar(t => t.ms >= 15000);
+  }
+  disparar();
+
+  assert.equal(boton.classList.contains('oculto'), false);
+  assert.equal(obtenerRecargas(), 0);
+  ctx.recargar();
+  assert.equal(obtenerRecargas(), 1);
+});
+
+test('C1: después de tocar Recargar, el reintento del mismo gasto reusa idEnvio', async () => {
+  const S = almacenamiento();
+
+  const p1 = crearAmbiente({ sessionStorage: S });
+  p1.ctx.document.getElementById('monto').value = '8000';
+  p1.ctx.document.getElementById('fecha').value = '2026-10-11';
+  p1.ctx.enviarGasto();
+  await p1.esperarTicks();
+  p1.disparar(t => t.ms >= 15000);
+  p1.ctx.recargar();
+
+  const p2 = crearAmbiente({ sessionStorage: S });
+  p2.ctx.dispararEvento('load');
+  p2.ctx.llamadas.find(ll => ll.nombre === 'obtenerOpciones').exito(OPCIONES_MINIMAS);
+  assert.equal(p2.ctx.document.getElementById('monto').value, '8000');
+  p2.ctx.enviarGasto();
+  await p2.esperarTicks();
+
+  const id1 = p1.ctx.llamadas.find(ll => ll.nombre === 'guardarGasto').args[0].idEnvio;
+  const id2 = p2.ctx.llamadas.find(ll => ll.nombre === 'guardarGasto').args[0].idEnvio;
+  assert.equal(id2, id1);
+});
+
+test('C1: si había comprobante, el reintento después de Recargar (ya sin él) reusa idEnvio', async () => {
+  class LectorFalso {
+    readAsDataURL() {
+      setImmediate(() => { this.result = 'data:image/jpeg;base64,AAAA'; this.onload(); });
+    }
+  }
+  const S = almacenamiento();
+
+  const p1 = crearAmbiente({ sessionStorage: S, FileReader: LectorFalso });
+  p1.ctx.document.getElementById('monto').value = '8000';
+  p1.ctx.document.getElementById('fecha').value = '2026-10-11';
+  p1.ctx.document.getElementById('archGasto').files = [{ name: 'a.jpg', size: 1000, type: 'image/jpeg' }];
+  p1.ctx.enviarGasto();
+  await p1.esperarTicks();
+  p1.disparar(t => t.ms >= 45000);
+  p1.ctx.recargar();
+
+  const p2 = crearAmbiente({ sessionStorage: S });
+  p2.ctx.dispararEvento('load');
+  p2.ctx.llamadas.find(ll => ll.nombre === 'obtenerOpciones').exito(OPCIONES_MINIMAS);
+  p2.ctx.enviarGasto();
+  await p2.esperarTicks();
+
+  const id1 = p1.ctx.llamadas.find(ll => ll.nombre === 'guardarGasto').args[0].idEnvio;
+  const id2 = p2.ctx.llamadas.find(ll => ll.nombre === 'guardarGasto').args[0].idEnvio;
+  assert.equal(id2, id1);
+});

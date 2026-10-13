@@ -780,6 +780,7 @@
 </div>
 
 <div class="aviso" id="aviso"></div>
+<button class="secundario oculto" id="btnRecargar" onclick="recargar()">Recargar</button>
 
 <script>
   var OPC = null;
@@ -821,7 +822,6 @@
     conectarEnter('montoIngreso', 'conceptoIngreso');
     conectarEnter('montoPersonal', 'categoriaPersonal');
 
-    recuperarBorrador();
     history.replaceState({ seccion: 'depto' }, '', '#depto');
 
     refrescarAcumulado();
@@ -843,6 +843,10 @@
     llenar('conceptoIngreso', datos.conceptosIngreso);
     cargarDetalles();
     seleccionarMesActual();
+
+    // Despues de aplicarMiNombre y de llenar los selectores: si no, el
+    // borrador vuelve con "pagó" en el usuario actual (H3).
+    recuperarBorrador();
   }
 
   /** Deja seleccionado mi nombre en todos los selectores de persona. */
@@ -1096,10 +1100,13 @@
   var ESPERA_CON_ADJUNTO_MS = 45000;
   var ENVIOS_SIN_RESPUESTA = {};
 
-  /** Identifica el contenido de un envio, sin los datos del adjunto. */
+  /**
+   * Identifica el contenido de un envio, sin el adjunto: despues de recargar
+   * el comprobante no se recupera, y el reintento tiene que reusar el id.
+   */
   function firmaEnvio(nombreFuncion, argumento) {
     return nombreFuncion + JSON.stringify(argumento, function (clave, valor) {
-      return (clave === 'datos' || clave === 'idEnvio') ? undefined : valor;
+      return (clave === 'comprobante' || clave === 'idEnvio') ? undefined : valor;
     });
   }
 
@@ -1124,10 +1131,12 @@
       terminado = true;
       FALLAS_SEGUIDAS++;
 
+      // Dos cortes seguidos: la sesion del iframe probablemente se vencio.
+      // Recargar lo decide el usuario con el boton: una recarga desde un
+      // temporizador, dentro del iframe de Apps Script, no es confiable (M2).
       if (FALLAS_SEGUIDAS >= 2) {
-        guardarBorrador();
-        mostrar('La conexión se cortó. Recargando…', 'error');
-        setTimeout(function () { location.reload(); }, 1200);
+        document.getElementById('btnRecargar').classList.remove('oculto');
+        alFallar({ message: 'La conexión parece cortada. Tocá Recargar: lo que escribiste no se pierde y reintentar no duplica.' });
       } else {
         alFallar({ message: 'No sé si se guardó. Reintentar no duplica.' });
       }
@@ -1152,17 +1161,39 @@
       })[nombreFuncion](argumento);
   }
 
-  /** Antes de recargar, guarda lo escrito para no perderlo. */
+  /**
+   * Lo que se guarda antes de recargar, en orden de restauracion: categoria
+   * va antes de detalle porque las opciones de detalle dependen de ella.
+   */
+  var CAMPOS_BORRADOR = [
+    'monto', 'categoria', 'detalle', 'descripcion', 'pagadoPor', 'division', 'fecha',
+    'montoServicio', 'servicio', 'mes', 'pagoServicio', 'fechaServicio',
+    'montoIngreso', 'conceptoIngreso', 'descripcionIngreso', 'recibidoPor', 'fechaIngreso',
+    'montoPersonal', 'categoriaPersonal', 'descripcionPersonal', 'fechaPersonal'
+  ];
+
+  /**
+   * Antes de recargar, guarda lo escrito para no perderlo: campos, selectores,
+   * fechas, la pestaña personal y los envios sin respuesta (para que el
+   * reintento despues de recargar no duplique).
+   */
   function guardarBorrador() {
     try {
       var campos = {};
-      ['monto', 'descripcion', 'montoServicio', 'montoIngreso',
-       'descripcionIngreso', 'montoPersonal', 'descripcionPersonal']
-        .forEach(function (id) {
-          var el = document.getElementById(id);
-          if (el && el.value) campos[id] = el.value;
-        });
-      sessionStorage.setItem('borrador', JSON.stringify(campos));
+      CAMPOS_BORRADOR.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && el.value) campos[id] = el.value;
+      });
+      var adjunto = ['archGasto', 'archServicio', 'archIngreso'].some(function (id) {
+        var el = document.getElementById(id);
+        return !!(el && el.files && el.files.length);
+      });
+      sessionStorage.setItem('borrador', JSON.stringify({
+        campos: campos,
+        tipoPersonal: TIPO_PERSONAL,
+        adjunto: adjunto,
+        envios: ENVIOS_SIN_RESPUESTA
+      }));
     } catch (e) { /* si no hay sessionStorage, se pierde y listo */ }
   }
 
@@ -1170,14 +1201,25 @@
     try {
       var guardado = sessionStorage.getItem('borrador');
       if (!guardado) return;
-      var campos = JSON.parse(guardado);
-      Object.keys(campos).forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) el.value = campos[id];
-      });
       sessionStorage.removeItem('borrador');
-      mostrar('Recuperé lo que estabas escribiendo.', 'ok');
+      var b = JSON.parse(guardado);
+
+      ENVIOS_SIN_RESPUESTA = b.envios || {};
+      if (b.tipoPersonal) cambiarPersonal(b.tipoPersonal);
+      CAMPOS_BORRADOR.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && b.campos[id] !== undefined) el.value = b.campos[id];
+        if (id === 'categoria') cargarDetalles();
+      });
+
+      mostrar('Recuperé lo que estabas escribiendo.' +
+              (b.adjunto ? ' El comprobante no se recupera: volvé a adjuntarlo.' : ''), 'ok');
     } catch (e) { /* nada */ }
+  }
+
+  function recargar() {
+    guardarBorrador();
+    location.reload();
   }
 
   /**
