@@ -378,42 +378,65 @@ function guardarMiNombre(nombre) {
 
 /* ---------- Guardar en la planilla compartida ---------- */
 
-function guardarGasto(d) {
+/**
+ * Corre un guardado una sola vez por envio (C1).
+ * Si el cliente corta la espera y reintenta, manda el mismo idEnvio: el
+ * reintento espera el lock del primero y devuelve su resultado sin volver a
+ * escribir. La clave se chequea y se graba dentro del lock, si no dos
+ * intentos simultaneos escriben los dos. Los guardados que fallan no quedan
+ * registrados, asi que se pueden reintentar.
+ */
+function unaVez(d, guardar) {
   var candado = LockService.getScriptLock();
-  candado.waitLock(10000);
+  candado.waitLock(30000);
 
   try {
-    var monto = aNumero(d.monto);
+    var cache = CacheService.getScriptCache();
+    var clave = d && d.idEnvio ? 'envio:' + d.idEnvio : '';
+    var previo = clave ? cache.get(clave) : null;
+    if (previo !== null) return previo;
 
-    // Los ajustes de conciliacion pueden ser negativos (cuando la planilla
-    // tiene de mas). El resto de los gastos, no.
-    if (!d.permitirNegativo && monto <= 0) {
-      throw new Error('El monto tiene que ser mayor a cero.');
-    }
-    if (monto === 0) throw new Error('El monto no puede ser cero.');
-
-    var hoja = planilla().getSheetByName(HOJA_GASTOS);
-    var fila = ultimaFilaReal(hoja) + 1;
-
-    var link = guardarComprobante(d.comprobante, d.detalle || 'Gasto');
-
-    hoja.getRange(fila, 1, 1, 7).setValues([[
-      aFecha(d.fecha), d.categoria, d.detalle, d.descripcion,
-      monto, d.pagadoPor, d.division
-    ]]);
-
-    SpreadsheetApp.flush();
-    if (Number(hoja.getRange(fila, 5).getValue()) !== monto) {
-      deshacerFila(hoja, fila, 7, 'El gasto');
-    }
-
-    if (link) hoja.getRange(fila, 12).setFormula('=HYPERLINK("' + link + '";"Ver")');
-
-    return 'Gasto cargado: ' + d.detalle + ' ' + comoPlata(monto) +
-           (link ? ' (con comprobante)' : '');
+    var resultado = guardar(d);
+    if (clave) cache.put(clave, resultado, 21600);
+    return resultado;
   } finally {
     candado.releaseLock();
   }
+}
+
+function guardarGasto(d) {
+  return unaVez(d, escribirGasto_);
+}
+
+function escribirGasto_(d) {
+  var monto = aNumero(d.monto);
+
+  // Los ajustes de conciliacion pueden ser negativos (cuando la planilla
+  // tiene de mas). El resto de los gastos, no.
+  if (!d.permitirNegativo && monto <= 0) {
+    throw new Error('El monto tiene que ser mayor a cero.');
+  }
+  if (monto === 0) throw new Error('El monto no puede ser cero.');
+
+  var hoja = planilla().getSheetByName(HOJA_GASTOS);
+  var fila = ultimaFilaReal(hoja) + 1;
+
+  var link = guardarComprobante(d.comprobante, d.detalle || 'Gasto');
+
+  hoja.getRange(fila, 1, 1, 7).setValues([[
+    aFecha(d.fecha), d.categoria, d.detalle, d.descripcion,
+    monto, d.pagadoPor, d.division
+  ]]);
+
+  SpreadsheetApp.flush();
+  if (Number(hoja.getRange(fila, 5).getValue()) !== monto) {
+    deshacerFila(hoja, fila, 7, 'El gasto');
+  }
+
+  if (link) hoja.getRange(fila, 12).setFormula('=HYPERLINK("' + link + '";"Ver")');
+
+  return 'Gasto cargado: ' + d.detalle + ' ' + comoPlata(monto) +
+         (link ? ' (con comprobante)' : '');
 }
 
 
@@ -423,68 +446,62 @@ function guardarGasto(d) {
  * La grilla de la hoja Servicios se actualiza sola.
  */
 function guardarServicio(d) {
-  var candado = LockService.getScriptLock();
-  candado.waitLock(10000);
+  return unaVez(d, escribirServicio_);
+}
 
-  try {
-    var monto = aNumero(d.monto);
-    if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
+function escribirServicio_(d) {
+  var monto = aNumero(d.monto);
+  if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
 
-    var hoja = planilla().getSheetByName(HOJA_PAGOS_SERV);
-    var fila = ultimaFilaReal(hoja) + 1;
+  var hoja = planilla().getSheetByName(HOJA_PAGOS_SERV);
+  var fila = ultimaFilaReal(hoja) + 1;
 
-    var link = guardarComprobante(d.comprobante, d.servicio + ' ' + d.mes);
+  var link = guardarComprobante(d.comprobante, d.servicio + ' ' + d.mes);
 
-    hoja.getRange(fila, 1, 1, 5).setValues([[
-      aFecha(d.fecha), d.servicio, d.mes, monto, d.pagadoPor
-    ]]);
+  hoja.getRange(fila, 1, 1, 5).setValues([[
+    aFecha(d.fecha), d.servicio, d.mes, monto, d.pagadoPor
+  ]]);
 
-    SpreadsheetApp.flush();
-    if (Number(hoja.getRange(fila, 4).getValue()) !== monto) {
-      deshacerFila(hoja, fila, 5, 'El pago');
-    }
-
-    if (link) hoja.getRange(fila, 6).setFormula('=HYPERLINK("' + link + '";"Ver")');
-
-    return d.servicio + ' de ' + d.mes + ': ' + comoPlata(monto) +
-           ' (pagó ' + d.pagadoPor + ')' + (link ? ' con comprobante' : '');
-  } finally {
-    candado.releaseLock();
+  SpreadsheetApp.flush();
+  if (Number(hoja.getRange(fila, 4).getValue()) !== monto) {
+    deshacerFila(hoja, fila, 5, 'El pago');
   }
+
+  if (link) hoja.getRange(fila, 6).setFormula('=HYPERLINK("' + link + '";"Ver")');
+
+  return d.servicio + ' de ' + d.mes + ': ' + comoPlata(monto) +
+         ' (pagó ' + d.pagadoPor + ')' + (link ? ' con comprobante' : '');
 }
 
 
 function guardarIngreso(d) {
-  var candado = LockService.getScriptLock();
-  candado.waitLock(10000);
+  return unaVez(d, escribirIngreso_);
+}
 
-  try {
-    var monto = aNumero(d.monto);
-    if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
+function escribirIngreso_(d) {
+  var monto = aNumero(d.monto);
+  if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
 
-    var hoja = planilla().getSheetByName(HOJA_INGRESOS);
-    var fila = ultimaFilaReal(hoja) + 1;
+  var hoja = planilla().getSheetByName(HOJA_INGRESOS);
+  var fila = ultimaFilaReal(hoja) + 1;
 
-    var link = guardarComprobante(d.comprobante, d.concepto || 'Ingreso');
+  var link = guardarComprobante(d.comprobante, d.concepto || 'Ingreso');
 
-    hoja.getRange(fila, 1, 1, 4).setValues([[
-      aFecha(d.fecha),
-      d.concepto + (d.descripcion ? ' - ' + d.descripcion : ''),
-      monto,
-      d.recibidoPor
-    ]]);
+  hoja.getRange(fila, 1, 1, 4).setValues([[
+    aFecha(d.fecha),
+    d.concepto + (d.descripcion ? ' - ' + d.descripcion : ''),
+    monto,
+    d.recibidoPor
+  ]]);
 
-    SpreadsheetApp.flush();
-    if (Number(hoja.getRange(fila, 3).getValue()) !== monto) {
-      deshacerFila(hoja, fila, 4, 'El ingreso');
-    }
-
-    if (link) hoja.getRange(fila, 5).setFormula('=HYPERLINK("' + link + '";"Ver")');
-
-    return 'Ingreso cargado: ' + d.concepto + ' ' + comoPlata(monto);
-  } finally {
-    candado.releaseLock();
+  SpreadsheetApp.flush();
+  if (Number(hoja.getRange(fila, 3).getValue()) !== monto) {
+    deshacerFila(hoja, fila, 4, 'El ingreso');
   }
+
+  if (link) hoja.getRange(fila, 5).setFormula('=HYPERLINK("' + link + '";"Ver")');
+
+  return 'Ingreso cargado: ' + d.concepto + ' ' + comoPlata(monto);
 }
 
 
@@ -884,6 +901,10 @@ function vincularPlanillaPersonal(texto) {
  * Suma al valor que ya haya en esa celda.
  */
 function guardarMovimientoPersonal(d) {
+  return unaVez(d, escribirMovimientoPersonal_);
+}
+
+function escribirMovimientoPersonal_(d) {
   var ss = planillaPersonal();
   var hoja = ss.getSheetByName(d.hoja);
   if (!hoja) throw new Error('No encontré la hoja "' + d.hoja + '".');

@@ -321,3 +321,36 @@ test('H3: avisa que el comprobante no se recupera', () => {
   const aviso = doc2.getElementById('aviso');
   assert.match(aviso.textContent, /comprobante/i);
 });
+
+test('C1: si la respuesta llega después del timeout, el reintento reusa idEnvio', async () => {
+  const { ctx, disparar, esperarTicks } = crearAmbiente();
+  ctx.document.getElementById('monto').value = '8000';
+  ctx.enviarGasto();
+  await esperarTicks();
+
+  disparar(t => t.ms >= 15000);
+  ctx.llamadas[ctx.llamadas.length - 1].exito('Gasto cargado'); // llega tarde
+
+  ctx.enviarGasto();
+  await esperarTicks();
+
+  const envios = ctx.llamadas.filter(ll => ll.nombre === 'guardarGasto');
+  assert.equal(envios.length, 2);
+  assert.equal(envios[1].args[0].idEnvio, envios[0].args[0].idEnvio);
+});
+
+test('C1: si cambia el contenido después del timeout, otro idEnvio', async () => {
+  const { ctx, disparar, esperarTicks } = crearAmbiente();
+  ctx.document.getElementById('monto').value = '8000';
+  ctx.enviarGasto();
+  await esperarTicks();
+
+  disparar(t => t.ms >= 15000);
+  ctx.document.getElementById('monto').value = '9000';
+  ctx.enviarGasto();
+  await esperarTicks();
+
+  const envios = ctx.llamadas.filter(ll => ll.nombre === 'guardarGasto');
+  assert.equal(envios.length, 2);
+  assert.notEqual(envios[1].args[0].idEnvio, envios[0].args[0].idEnvio);
+});
