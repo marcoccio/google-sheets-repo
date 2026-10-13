@@ -14,8 +14,6 @@ var HOJA_RESUMEN = 'Resumen';
 var HOJA_INGRESOS = 'Ingresos';
 
 var CLAVE_PERSONAL = 'ID_PLANILLA_PERSONAL';
-var CLAVE_RECORDATORIO = 'RECORDATORIO_ACTIVO';
-var CLAVE_DIAS = 'RECORDATORIO_DIAS';
 
 var CONCEPTOS_INGRESO = ['Sueldo', 'Venta', 'Reintegro', 'Regalo', 'Ajuste', 'Otro'];
 
@@ -97,6 +95,70 @@ function ultimaFilaReal(hoja) {
 function aFecha(texto) {
   var p = String(texto).split('-');
   return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+}
+
+
+/**
+ * Convierte lo que venga en un numero valido.
+ * Acepta "15.000,50", "15000.50", "$ 15 000", "15,50".
+ * Si no se puede interpretar, corta con un error claro en vez de
+ * escribir NaN en la planilla.
+ */
+function aNumero(valor, campo) {
+  var nombre = campo || 'monto';
+
+  if (typeof valor === 'number') {
+    if (!isFinite(valor)) throw new Error('El ' + nombre + ' no es un numero valido.');
+    return valor;
+  }
+
+  var t = String(valor === null || valor === undefined ? '' : valor).trim();
+  if (t === '') throw new Error('Falta el ' + nombre + '.');
+
+  // Saca simbolos, espacios y todo lo que no sea digito, coma, punto o signo.
+  t = t.replace(/[^\d,.\-]/g, '');
+  if (t === '' || t === '-') throw new Error('El ' + nombre + ' no es un numero valido.');
+
+  var coma = t.lastIndexOf(','), punto = t.lastIndexOf('.');
+
+  if (coma > -1 && punto > -1) {
+    // El ultimo que aparece es el separador decimal.
+    if (coma > punto) t = t.replace(/\./g, '').replace(',', '.');
+    else t = t.replace(/,/g, '');
+  } else if (coma > -1) {
+    // Una sola coma: decimal si deja 1 o 2 digitos, si no es separador de miles.
+    var resto = t.length - coma - 1;
+    t = (resto === 1 || resto === 2) ? t.replace(',', '.') : t.replace(/,/g, '');
+  } else if (punto > -1) {
+    // Un solo punto con 3 digitos atras es separador de miles en Argentina:
+    // "15.000" son quince mil, no quince. Los montos con 3 decimales no
+    // existen en pesos, asi que la regla es segura aca.
+    var resto2 = t.length - punto - 1;
+    var variosPuntos = t.indexOf('.') !== punto;
+    if (variosPuntos || resto2 === 3) t = t.replace(/\./g, '');
+  }
+
+  var n = Number(t);
+  if (!isFinite(n)) throw new Error('El ' + nombre + ' no es un numero valido.');
+
+  return n;
+}
+
+
+/**
+ * Escribe un numero en una celda y vuelve a leerla para confirmar.
+ * Si no quedo, avisa en vez de decir que se guardo.
+ */
+function escribirYVerificar(celda, valor, donde) {
+  celda.setValue(valor);
+  SpreadsheetApp.flush();
+
+  var leido = celda.getValue();
+  if (typeof leido !== 'number' || Math.abs(leido - valor) > 0.01) {
+    throw new Error('No se pudo guardar en ' + (donde || 'la planilla') +
+                    '. La celda quedo con "' + leido + '". No se guardo nada.');
+  }
+  return leido;
 }
 
 
@@ -289,6 +351,15 @@ function guardarGasto(d) {
   candado.waitLock(10000);
 
   try {
+    var monto = aNumero(d.monto);
+
+    // Los ajustes de conciliacion pueden ser negativos (cuando la planilla
+    // tiene de mas). El resto de los gastos, no.
+    if (!d.permitirNegativo && monto <= 0) {
+      throw new Error('El monto tiene que ser mayor a cero.');
+    }
+    if (monto === 0) throw new Error('El monto no puede ser cero.');
+
     var hoja = planilla().getSheetByName(HOJA_GASTOS);
     var fila = ultimaFilaReal(hoja) + 1;
 
@@ -296,12 +367,17 @@ function guardarGasto(d) {
 
     hoja.getRange(fila, 1, 1, 7).setValues([[
       aFecha(d.fecha), d.categoria, d.detalle, d.descripcion,
-      Number(d.monto), d.pagadoPor, d.division
+      monto, d.pagadoPor, d.division
     ]]);
+
+    SpreadsheetApp.flush();
+    if (Number(hoja.getRange(fila, 5).getValue()) !== monto) {
+      throw new Error('La fila no quedo bien escrita. Revisa la planilla.');
+    }
 
     if (link) hoja.getRange(fila, 12).setFormula('=HYPERLINK("' + link + '";"Ver")');
 
-    return 'Gasto cargado: ' + d.detalle + ' ' + comoPlata(Number(d.monto)) +
+    return 'Gasto cargado: ' + d.detalle + ' ' + comoPlata(monto) +
            (link ? ' (con comprobante)' : '');
   } finally {
     candado.releaseLock();
@@ -319,18 +395,26 @@ function guardarServicio(d) {
   candado.waitLock(10000);
 
   try {
+    var monto = aNumero(d.monto);
+    if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
+
     var hoja = planilla().getSheetByName(HOJA_PAGOS_SERV);
     var fila = ultimaFilaReal(hoja) + 1;
 
     var link = guardarComprobante(d.comprobante, d.servicio + ' ' + d.mes);
 
     hoja.getRange(fila, 1, 1, 5).setValues([[
-      aFecha(d.fecha), d.servicio, d.mes, Number(d.monto), d.pagadoPor
+      aFecha(d.fecha), d.servicio, d.mes, monto, d.pagadoPor
     ]]);
+
+    SpreadsheetApp.flush();
+    if (Number(hoja.getRange(fila, 4).getValue()) !== monto) {
+      throw new Error('El pago no quedo bien escrito. Revisa la planilla.');
+    }
 
     if (link) hoja.getRange(fila, 6).setFormula('=HYPERLINK("' + link + '";"Ver")');
 
-    return d.servicio + ' de ' + d.mes + ': ' + comoPlata(Number(d.monto)) +
+    return d.servicio + ' de ' + d.mes + ': ' + comoPlata(monto) +
            ' (pagó ' + d.pagadoPor + ')' + (link ? ' con comprobante' : '');
   } finally {
     candado.releaseLock();
@@ -343,6 +427,9 @@ function guardarIngreso(d) {
   candado.waitLock(10000);
 
   try {
+    var monto = aNumero(d.monto);
+    if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
+
     var hoja = planilla().getSheetByName(HOJA_INGRESOS);
     var fila = ultimaFilaReal(hoja) + 1;
 
@@ -351,13 +438,18 @@ function guardarIngreso(d) {
     hoja.getRange(fila, 1, 1, 4).setValues([[
       aFecha(d.fecha),
       d.concepto + (d.descripcion ? ' - ' + d.descripcion : ''),
-      Number(d.monto),
+      monto,
       d.recibidoPor
     ]]);
 
+    SpreadsheetApp.flush();
+    if (Number(hoja.getRange(fila, 3).getValue()) !== monto) {
+      throw new Error('El ingreso no quedo bien escrito. Revisa la planilla.');
+    }
+
     if (link) hoja.getRange(fila, 5).setFormula('=HYPERLINK("' + link + '";"Ver")');
 
-    return 'Ingreso cargado: ' + d.concepto + ' ' + comoPlata(Number(d.monto));
+    return 'Ingreso cargado: ' + d.concepto + ' ' + comoPlata(monto);
   } finally {
     candado.releaseLock();
   }
@@ -775,19 +867,26 @@ function guardarMovimientoPersonal(d) {
   }
   if (fila === -1) throw new Error('No encontré la categoría "' + d.categoria + '".');
 
+  var monto = aNumero(d.monto);
+  if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
+
   var celda = hoja.getRange(fila, col);
-  var actual = Number(celda.getValue()) || 0;
-  celda.setValue(actual + Number(d.monto));
+  var previo = celda.getValue();
+  var actual = (typeof previo === 'number' && isFinite(previo)) ? previo : 0;
+
+  // Escribe y relee: si no quedo, avisa en vez de decir que se guardo.
+  escribirYVerificar(celda, actual + monto,
+                     d.hoja + ' > ' + d.categoria + ' > ' + MESES[fecha.getMonth()]);
 
   // La descripción queda como nota, para no perderla.
   if (d.descripcion) {
     var nota = celda.getNote();
     var linea = Utilities.formatDate(fecha, Session.getScriptTimeZone(), 'dd/MM') +
-                ': ' + d.descripcion + ' ' + comoPlata(Number(d.monto));
+                ': ' + d.descripcion + ' ' + comoPlata(monto);
     celda.setNote(nota ? nota + '\n' + linea : linea);
   }
 
-  return d.hoja + ' - ' + d.categoria + ': ' + comoPlata(Number(d.monto)) +
+  return d.hoja + ' - ' + d.categoria + ': ' + comoPlata(monto) +
          ' en ' + MESES[fecha.getMonth()];
 }
 
@@ -886,7 +985,7 @@ function conciliar(d) {
     ingresos = sumar('Ingresos');
   }
 
-  var real = Number(d.montoReal);
+  var real = aNumero(d.montoReal, 'total real');
   var diferencia = real - gastos;
 
   return {
@@ -906,7 +1005,7 @@ function conciliar(d) {
 
 
 function registrarAjuste(d) {
-  var monto = Number(d.monto);
+  var monto = aNumero(d.monto);
 
   if (d.destino === 'depto') {
     return guardarGasto({
@@ -916,7 +1015,8 @@ function registrarAjuste(d) {
       descripcion: d.descripcion || 'Ajuste de conciliación',
       monto: monto,
       pagadoPor: d.pagadoPor,
-      division: d.division || '50/50'
+      division: d.division || '50/50',
+      permitirNegativo: true
     });
   }
 
@@ -929,103 +1029,8 @@ function registrarAjuste(d) {
   });
 }
 
-
-/* ---------- Recordatorio ---------- */
-
-function diasAviso() {
-  var v = PropertiesService.getUserProperties().getProperty(CLAVE_DIAS);
-  return v ? Number(v) : 1;
-}
-
-
-function ultimoMovimiento() {
-  var ultima = null;
-
-  function revisar(hoja) {
-    if (!hoja) return;
-    var datos = hoja.getRange(2, 1, 1999, 1).getValues();
-    for (var i = 0; i < datos.length; i++) {
-      var f = datos[i][0];
-      if (f instanceof Date && (!ultima || f > ultima)) ultima = f;
-    }
-  }
-
-  var ss = planilla();
-  revisar(ss.getSheetByName(HOJA_GASTOS));
-  revisar(ss.getSheetByName(HOJA_INGRESOS));
-  revisar(ss.getSheetByName(HOJA_PAGOS_SERV));
-
-  return ultima;
-}
-
-
-function estadoRecordatorio() {
-  var props = PropertiesService.getUserProperties();
-  var activo = props.getProperty(CLAVE_RECORDATORIO) === 'si';
-  var ultima = ultimoMovimiento();
-
-  return {
-    activo: activo,
-    dias: diasAviso(),
-    ultimo: ultima
-      ? Utilities.formatDate(ultima, Session.getScriptTimeZone(), 'dd/MM/yyyy')
-      : 'todavía no hay movimientos',
-    mail: Session.getEffectiveUser().getEmail()
-  };
-}
-
-
-function activarRecordatorio(dias) {
-  desactivarRecordatorio();
-
-  ScriptApp.newTrigger('revisarActividad')
-    .timeBased().everyDays(1).atHour(20).create();
-
-  var props = PropertiesService.getUserProperties();
-  props.setProperty(CLAVE_RECORDATORIO, 'si');
-  props.setProperty(CLAVE_DIAS, String(Number(dias) || 1));
-
-  return estadoRecordatorio();
-}
-
-
-function desactivarRecordatorio() {
-  var triggers = ScriptApp.getProjectTriggers();
-  for (var i = 0; i < triggers.length; i++) {
-    if (triggers[i].getHandlerFunction() === 'revisarActividad') {
-      ScriptApp.deleteTrigger(triggers[i]);
-    }
-  }
-  PropertiesService.getUserProperties().setProperty(CLAVE_RECORDATORIO, 'no');
-  return estadoRecordatorio();
-}
-
-
-function revisarActividad() {
-  var mail = Session.getEffectiveUser().getEmail();
-  if (!mail) return;
-
-  var ultima = ultimoMovimiento();
-  var dias = ultima
-    ? Math.floor((new Date() - ultima) / (1000 * 60 * 60 * 24))
-    : 999;
-
-  if (dias < diasAviso()) return;
-
-  var url = ScriptApp.getService().getUrl();
-  var cuando = ultima
-    ? 'El último movimiento cargado es del ' +
-      Utilities.formatDate(ultima, Session.getScriptTimeZone(), 'dd/MM/yyyy') + '.'
-    : 'Todavía no hay ningún movimiento cargado.';
-
-  MailApp.sendEmail({
-    to: mail,
-    subject: 'Gastos depto: hace ' + dias + ' día(s) que no cargás nada',
-    body: 'Hola,\n\n' + cuando + '\n\n' +
-          'Pasaron ' + dias + ' día(s) sin cargar gastos ni ingresos. ' +
-          'Si hubo movimientos, es buen momento para anotarlos.\n\n' +
-          (url ? 'Cargar ahora: ' + url + '\n\n' : '') +
-          'Planilla: ' + planilla().getUrl() + '\n\n' +
-          'Para dejar de recibir este aviso, apagá el recordatorio desde la app.\n'
-  });
-}
+/**
+ * Nota: el recordatorio por mail se eliminó en esta versión.
+ * Si quedaron disparadores creados por versiones anteriores, hay que
+ * borrarlos a mano en script.google.com/home/triggers, con cada cuenta.
+ */
