@@ -119,7 +119,10 @@ test('C1: después de un éxito, otro idEnvio', async () => {
   assert.notEqual(id1, id2);
 });
 
-test('C1: después de un fallo del servidor, otro idEnvio', async () => {
+// Regla cambiada en #44: un fallo puede ser de red DESPUES de escribir; el
+// servidor solo graba la clave si el guardado termino bien, asi que reusar el
+// id es seguro si el anterior fallo de verdad.
+test('C1: después de un fallo del servidor, el reintento reusa idEnvio', async () => {
   const { ctx, esperarTicks } = crearAmbiente();
   ctx.document.getElementById('monto').value = '8000';
   ctx.enviarGasto();
@@ -144,7 +147,7 @@ test('C1: después de un fallo del servidor, otro idEnvio', async () => {
   assert.notEqual(id1, '');
   assert.equal(typeof id2, 'string');
   assert.notEqual(id2, '');
-  assert.notEqual(id1, id2);
+  assert.equal(id1, id2);
 });
 
 test('C1: mensaje del timeout', async () => {
