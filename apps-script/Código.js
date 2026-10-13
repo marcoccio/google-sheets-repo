@@ -62,7 +62,7 @@ function planilla() {
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('Web')
     .setTitle('Gastos depto')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -236,6 +236,21 @@ function carpetaComprobantes() {
 
 /* ---------- Datos de apoyo ---------- */
 
+/**
+ * Categorías personales que se eligen a mano. Son constantes, no tocan la
+ * planilla personal. "Ajuste" queda afuera: lo escribe solo la conciliación.
+ */
+function categoriasPersonales() {
+  var personales = {};
+  Object.keys(PERSONAL).forEach(function (hoja) {
+    var lista = [];
+    PERSONAL[hoja].secciones.forEach(function (s) { lista = lista.concat(s[1]); });
+    personales[hoja] = lista.filter(function (c) { return c !== 'Ajuste'; });
+  });
+  return personales;
+}
+
+
 function obtenerOpciones() {
   var ss = planilla();
   var listas = ss.getSheetByName(HOJA_LISTAS);
@@ -266,13 +281,7 @@ function obtenerOpciones() {
     return m !== '' && m !== null;
   });
 
-  // Categorías personales: son constantes, no tocan la planilla personal.
-  var personales = {};
-  Object.keys(PERSONAL).forEach(function (hoja) {
-    var lista = [];
-    PERSONAL[hoja].secciones.forEach(function (s) { lista = lista.concat(s[1]); });
-    personales[hoja] = lista;
-  });
+  var personales = categoriasPersonales();
 
   return {
     categorias: Object.keys(detalles),
