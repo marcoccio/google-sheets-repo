@@ -1070,8 +1070,10 @@ function conciliar(d) {
 function registrarAjuste(d) {
   var monto = aNumero(d.monto);
 
+  // El idEnvio sigue hasta el guardado, que es el que no escribe dos veces.
   if (d.destino === 'depto') {
     return guardarGasto({
+      idEnvio: d.idEnvio,
       fecha: d.fecha,
       categoria: 'Varios',
       detalle: 'Ajuste',
@@ -1084,6 +1086,7 @@ function registrarAjuste(d) {
   }
 
   return guardarMovimientoPersonal({
+    idEnvio: d.idEnvio,
     fecha: d.fecha,
     hoja: monto >= 0 ? 'Gastos' : 'Ingresos',
     categoria: 'Ajuste',
