@@ -246,8 +246,17 @@
 <script>
   var OPC = null;
 
+  // No se usa toISOString porque da la fecha en UTC; Argentina es UTC-3 y de 21:00 a 23:59 sale el día siguiente.
+  function fechaLocal(d) {
+    var fecha = d || new Date();
+    var anio = fecha.getFullYear();
+    var mes = ('0' + (fecha.getMonth() + 1)).slice(-2);
+    var dia = ('0' + fecha.getDate()).slice(-2);
+    return anio + '-' + mes + '-' + dia;
+  }
+
   window.addEventListener('load', function () {
-    document.getElementById('fecha').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('fecha').value = fechaLocal(new Date());
     google.script.run.withSuccessHandler(iniciar).obtenerOpciones();
     refrescarAcumulado();
   });
