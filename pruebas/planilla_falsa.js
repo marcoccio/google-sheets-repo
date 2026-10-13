@@ -27,6 +27,10 @@ function parsearA1(a1) {
   return { fila: filaInicio, col: colInicio, numFilas, numCols };
 }
 
+// fallas.relectura: si una celda guarda este valor, al leerla devuelve
+// 'basura'. Simula "escribí y la relectura no coincide" (A2, M1).
+const fallas = { relectura: undefined };
+
 function crearRango(hojaData, fila, col, numFilas, numCols) {
   return {
     get fila() {
@@ -47,7 +51,8 @@ function crearRango(hojaData, fila, col, numFilas, numCols) {
         for (let c = 0; c < numCols; c++) {
           const colIdx = col + c - 1;
           if (filaData && filaData[colIdx] !== undefined) {
-            filaArr.push(filaData[colIdx]);
+            const v = filaData[colIdx];
+            filaArr.push(fallas.relectura !== undefined && v === fallas.relectura ? 'basura' : v);
           } else {
             filaArr.push('');
           }
@@ -81,6 +86,9 @@ function crearRango(hojaData, fila, col, numFilas, numCols) {
     },
     setFormula(f) {
       this.setValue(f);
+    },
+    clearContent() {
+      this.setValues(Array.from({ length: numFilas }, () => Array(numCols).fill('')));
     },
     getNote() {
       const clave = `${fila},${col}`;
@@ -284,7 +292,10 @@ function crearServicios(planillas = {}) {
     }
   };
 
+  fallas.relectura = undefined;
+
   return {
+    fallas,
     SpreadsheetApp,
     LockService,
     CacheService,
