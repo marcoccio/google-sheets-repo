@@ -238,6 +238,19 @@
     <select id="mes"></select>
   </div>
 
+  <div class="campo">
+    <label for="pagoServicio">Pago</label>
+    <select id="pagoServicio">
+      <option>Marcos</option>
+      <option>Flor</option>
+    </select>
+  </div>
+
+  <div class="campo">
+    <label for="fechaServicio">Fecha</label>
+    <input type="date" id="fechaServicio">
+  </div>
+
   <button class="guardar" id="btnServicio" onclick="enviarServicio()">Guardar servicio</button>
 </div>
 
@@ -257,6 +270,7 @@
 
   window.addEventListener('load', function () {
     document.getElementById('fecha').value = fechaLocal(new Date());
+    document.getElementById('fechaServicio').value = fechaLocal(new Date());
     google.script.run.withSuccessHandler(iniciar).obtenerOpciones();
     refrescarAcumulado();
   });
@@ -277,6 +291,7 @@
     llenar('mes', datos.meses);
     cargarDetalles();
     seleccionarMesActual();
+    if (datos.yo) aplicarMiNombre(datos.yo.nombre);
   }
 
   function llenar(id, valores) {
@@ -303,6 +318,16 @@
     for (var i = 0; i < sel.options.length; i++) {
       if (sel.options[i].textContent === actual) { sel.selectedIndex = i; return; }
     }
+  }
+
+  function aplicarMiNombre(nombre) {
+    ['pagadoPor', 'pagoServicio'].forEach(function (id) {
+      var sel = document.getElementById(id);
+      if (!sel) return;
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].textContent === nombre) { sel.selectedIndex = i; return; }
+      }
+    });
   }
 
   function cambiar(cual) {
@@ -387,9 +412,11 @@
         mostrar(e.message, 'error');
       })
       .guardarServicio({
+        fecha: document.getElementById('fechaServicio').value,
         servicio: document.getElementById('servicio').value,
         mes: document.getElementById('mes').value,
-        monto: monto
+        monto: monto,
+        pagadoPor: document.getElementById('pagoServicio').value
       });
   }
 </script>
