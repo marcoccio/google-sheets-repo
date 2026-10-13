@@ -171,8 +171,8 @@ existe en `agy`, y Gemini 3.8 Flash es el único Gemini disponible. Con
 
 ```
 HERRAMIENTAS (ya instaladas y verificadas; usá solo estas, con estos comandos):
-- Pruebas: `node --test` desde la raíz (Node 22, sin dependencias; descubre
-  solo `*.test.js`). Es la única forma de verificar tu trabajo; pegá la salida completa en tu respuesta.
+- Pruebas: `node --test 'pruebas/*.test.js'` desde la raíz (Node 22, sin
+  dependencias). Es la única forma de verificar tu trabajo; pegá la salida completa en tu respuesta.
 - Archivos: leé con tu herramienta de lectura; escribí solo en esta carpeta.
 - RAM: tenés 1 GB; esta tarea no necesita más.
 
@@ -193,7 +193,7 @@ textuales.
 
 **Verificación de Claude, siempre, antes de abrir el PR:**
 
-1. Copiar el archivo devuelto a la rama del issue y correr `node --test` en el repo: tiene que pasar todo, no solo la prueba del issue.
+1. Copiar el archivo devuelto a la rama del issue y correr `node --test 'pruebas/*.test.js'` en el repo: tiene que pasar todo, no solo la prueba del issue.
 2. `git diff`: ningún cambio fuera de lo que pide el issue (Gemini tiende a
    "mejorar" lo que no se le pidió).
 3. Comprobar que no se tocaron las pruebas.

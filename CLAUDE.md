@@ -49,9 +49,12 @@ instalar.
 
 ## Pruebas
 
-Node 22, sin dependencias ni `package.json`. `node --test` desde la raíz corre
-los `pruebas/*.test.js` (no le pases `pruebas/`: Node 22 lo toma como archivo y
-falla). Un archivo puntual: `node --test pruebas/arnes.test.js`.
+Node 22, sin dependencias ni `package.json`. Todas las pruebas:
+`node --test 'pruebas/*.test.js'` (con comillas). Sin el patrón, `node --test`
+también levanta cualquier `*.test.js` fuera de `pruebas/` (por ejemplo la
+carpeta local `revision-claude-desktop/`), y `node --test pruebas/` falla
+porque Node 22 lo toma como archivo. Un archivo puntual:
+`node --test pruebas/arnes.test.js`.
 
 `pruebas/arnes.js` carga el código **real** de `apps-script/` en un contexto
 `node:vm` con stubs de los servicios de Google y del navegador
@@ -64,7 +67,8 @@ Utilities para las pruebas del servidor.
 
 Las pruebas con el código de un hallazgo en el nombre (`A1: ...`, `C1: ...`)
 se escriben **antes** del arreglo y fallan hasta que se arregla; las `CONTROL`
-pasan siempre. En `develop`, `node --test` tiene que salir en verde. La tabla
+pasan siempre. En `develop`, `node --test 'pruebas/*.test.js'` tiene que salir
+en verde. La tabla
 de archivos está en `README.md`.
 
 **Límite conocido (#43):** hasta que se resuelva, el doble de planilla ignora
