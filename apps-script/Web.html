@@ -743,7 +743,7 @@
             <label for="pagadoAjuste">Quién lo pagó</label>
             <select id="pagadoAjuste"><option>Marcos</option><option>Flor</option></select>
           </div>
-          <button class="secundario" onclick="cargarAjuste()">Cargar la diferencia como ajuste</button>
+          <button class="secundario" id="btnAjuste" onclick="cargarAjuste()">Cargar la diferencia como ajuste</button>
         </div>
       </div>
     </div>
@@ -1498,28 +1498,31 @@
   function cargarAjuste() {
     if (!ULTIMA_CONCILIACION) return;
 
-    google.script.run
-      .withSuccessHandler(function (msg) {
+    var texto = 'Cargar la diferencia como ajuste';
+    ocupado('btnAjuste', 'Guardando…');
+
+    llamar('registrarAjuste',
+      {
+        destino: document.getElementById('destinoConciliar').value,
+        fecha: document.getElementById('hasta').value,
+        monto: ULTIMA_CONCILIACION.diferenciaNumero,
+        pagadoPor: document.getElementById('pagadoAjuste').value,
+        division: '50/50'
+      },
+      function (msg) {
+        ocupado('btnAjuste', '', texto);
         mostrar(msg, 'ok');
         document.getElementById('resultado').classList.remove('visible');
         document.getElementById('montoReal').value = '';
         ULTIMA_CONCILIACION = null;
         refrescarAcumulado();
         refrescarTotalPersonal();
-      })
-      .withFailureHandler(function (e) { mostrar(e.message, 'error'); })
-      .registrarAjuste({
-        destino: document.getElementById('destinoConciliar').value,
-        fecha: document.getElementById('hasta').value,
-        monto: ULTIMA_CONCILIACION.diferenciaNumero,
-        pagadoPor: document.getElementById('pagadoAjuste').value,
-        division: '50/50'
+      },
+      function (e) {
+        ocupado('btnAjuste', '', texto);
+        mostrar(e.message, 'error');
       });
   }
-
-
-
-
 
   function desvincularPersonal() {
     google.script.run
