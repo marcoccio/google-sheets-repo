@@ -1093,7 +1093,7 @@
    * Que se corte la espera no quiere decir que el servidor no haya escrito
    * (C1). Cada envio lleva un idEnvio, y el servidor no escribe dos veces el
    * mismo. Si se corta la espera, el reintento del MISMO envio reusa el id;
-   * si el servidor contesto (bien o mal), el proximo envio lleva uno nuevo.
+   * si el servidor contesto bien, el proximo envio lleva uno nuevo.
    */
   var FALLAS_SEGUIDAS = 0;
   var ESPERA_MS = 15000;
@@ -1120,8 +1120,11 @@
       : Date.now().toString(36) + Math.random().toString(36).slice(2);
     ENVIOS_SIN_RESPUESTA[nombreFuncion] = { id: argumento.idEnvio, firma: firma };
 
-    // Una respuesta que llega despues del corte no libera el id: la pantalla
-    // sigue diciendo "No sé si se guardó", y el reintento tiene que reusarlo.
+    // Solo una respuesta exitosa libera el id (#44): un fallo puede ser de red
+    // despues de que el servidor escribio. Reusarlo es seguro: el servidor
+    // graba la clave solo si el guardado termino bien. Una respuesta que llega
+    // despues del corte tampoco lo libera: la pantalla sigue diciendo "No sé si
+    // se guardó", y el reintento tiene que reusarlo.
     function contesto() {
       delete ENVIOS_SIN_RESPUESTA[nombreFuncion];
     }
@@ -1154,7 +1157,6 @@
       .withFailureHandler(function (e) {
         if (terminado) return;
         terminado = true;
-        contesto();
         clearTimeout(reloj);
         FALLAS_SEGUIDAS++;
         alFallar(e);
