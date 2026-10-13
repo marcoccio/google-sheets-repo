@@ -7,7 +7,7 @@ trabajar en `CLAUDE.md`.
 ## Pruebas
 
 ```bash
-node --test                               # todas
+node --test 'pruebas/*.test.js'           # todas
 node --test pruebas/c1_servidor.test.js   # un archivo
 ```
 
