@@ -93,8 +93,18 @@ function ultimaFilaReal(hoja) {
 
 
 function aFecha(texto) {
-  var p = String(texto).split('-');
-  return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  if (typeof texto !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+    throw new Error('Fecha invalida: "' + texto + '".');
+  }
+  var p = texto.split('-');
+  var ano = Number(p[0]);
+  var mes = Number(p[1]);
+  var dia = Number(p[2]);
+  var fecha = new Date(ano, mes - 1, dia);
+  if (fecha.getFullYear() !== ano || fecha.getMonth() !== mes - 1 || fecha.getDate() !== dia) {
+    throw new Error('Fecha invalida: "' + texto + '".');
+  }
+  return fecha;
 }
 
 
