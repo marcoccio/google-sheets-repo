@@ -817,10 +817,10 @@
       })
       .urlPlanilla();
 
-    conectarEnter('monto', 'categoria');
-    conectarEnter('montoServicio', 'servicio');
-    conectarEnter('montoIngreso', 'conceptoIngreso');
-    conectarEnter('montoPersonal', 'categoriaPersonal');
+    conectarEnter('monto');
+    conectarEnter('montoServicio');
+    conectarEnter('montoIngreso');
+    conectarEnter('montoPersonal');
 
     history.replaceState({ seccion: 'depto' }, '', '#depto');
 
@@ -1225,27 +1225,18 @@
   }
 
   /**
-   * Enter en el monto salta al desplegable y lo abre.
-   * showPicker() existe desde Chrome 121; si no esta, al menos enfoca.
+   * Enter en el monto solo cierra el teclado (#59). Antes saltaba al
+   * desplegable y lo abria con showPicker(), pero el iframe de Apps Script lo
+   * bloquea: el desplegable quedaba con el foco, cerrado, y trababa la pantalla.
    */
-  function saltarA(idSelect) {
-    var sel = document.getElementById(idSelect);
-    if (!sel) return;
-    sel.focus();
-    if (typeof sel.showPicker === 'function') {
-      try { sel.showPicker(); } catch (e) { /* algunos navegadores lo bloquean */ }
-    }
-  }
-
-  function conectarEnter(idInput, idSelect) {
+  function conectarEnter(idInput) {
     var el = document.getElementById(idInput);
     if (!el) return;
-    el.setAttribute('enterkeyhint', 'next');
+    el.setAttribute('enterkeyhint', 'done');
     el.addEventListener('keydown', function (ev) {
       if (ev.key !== 'Enter') return;
       ev.preventDefault();
       el.blur();
-      setTimeout(function () { saltarA(idSelect); }, 60);
     });
   }
 
