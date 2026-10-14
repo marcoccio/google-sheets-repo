@@ -229,6 +229,22 @@
     padding-right: 34px;
   }
 
+  /* Tocar en cualquier parte del campo de fecha abre el calendario (#60): el
+     indicador nativo, transparente, cubre todo el campo. No se puede abrir con
+     showPicker(): el iframe de Apps Script lo bloquea. */
+  input[type="date"] {
+    position: relative;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    opacity: 0;
+    cursor: pointer;
+  }
+
   input:focus, select:focus {
     outline: 2px solid var(--acento);
     outline-offset: -1px;
