@@ -80,7 +80,7 @@ arreglo se vea como un diff limpio.
 | 2.7 | **H3 + M2**: el borrador guarda selectores y fechas y se restaura después de `aplicarMiNombre()`; avisa que el comprobante se pierde; botón "Recargar" en vez de `location.reload()` | fix | claude | 2.4 | Prueba H3: vuelve "pagó Flor" |
 | 2.8 | **G2**: Marcos y Flor borran a mano, cada uno con su cuenta, el disparador `revisarActividad` en script.google.com/home/triggers | chore | marcos (+ Flor) | — | Los dos confirman que en su lista no queda ningún disparador de este proyecto |
 | 2.9 | **B2 + B4**: sacar "Ajuste" de las categorías elegibles a mano de la personal; sacar `maximum-scale=1` | fix | claude | 2.1 | Revisión de diff |
-| 2.10 | Instalar v12 | chore | marcos + claude | 2.2–2.9, 2.11–2.15 | Push → prueba en `/dev` desde el teléfono (Enter, `showPicker()`, botón Recargar, borrador) → deploy → totales iguales. Tag `v12`. `toca-produccion` |
+| 2.10 | Instalar v12 | chore | marcos + claude | 2.2–2.9, 2.11–2.18 | Push → prueba en `/dev` desde el teléfono (Enter, calendario, botón Recargar, borrador) → deploy → totales iguales. Tag `v12`. `toca-produccion` |
 
 Agregados el 13/10/2026 después de la revisión de Claude Desktop
 (`revision-claude-desktop/`). Van en v12 porque el `clasp push` los expone o
@@ -93,6 +93,19 @@ porque tocan el mismo contrato de `idEnvio`:
 | 2.13 | Panel lateral: servicio con fecha y quién pagó; nombre preseleccionado | fix | **gemini** | — | `guardarServicio` real acepta lo que manda el panel |
 | 2.14 | ICL: búsqueda exacta por descripción; fechas en la zona **de la planilla** | fix | claude | — | Variable con "ciclo" no confunde; después del push `B14` lee desde `2026-05-01` |
 | 2.15 | "Ya estaba guardado" cuando el servidor descarta un duplicado | feat | claude | — | El duplicado responde distinto y escribe una vez |
+| 2.16 | Enter en el monto solo cierra el teclado (se saca el salto; **G4 queda sin efecto**) | fix | claude | — | No mueve el foco ni llama a `showPicker` |
+| 2.17 | Tocar el campo de fecha abre el calendario nativo | fix | claude | — | Confirmado en el teléfono |
+| 2.18 | Comprobantes con la fecha del movimiento en el nombre | feat | claude | — | `AAAA-MM-DD <detalle> - <archivo>`; fecha validada antes de crear el archivo |
+
+2.16 a 2.18 salieron de la prueba de Marcos en `/dev` del 13/10/2026.
+Decisiones de esa prueba que no llevan issue:
+
+- **Detalle del encabezado:** "Gastos del mes" sigue mostrando el TOTAL GASTOS
+  DEL MES del Resumen. Se revisa más adelante.
+- **Meses del servicio:** el desplegable muestra solo los meses que tiene la
+  hoja Servicios (junio a diciembre de 2026). Es correcto: un mes sin columna
+  no se sumaría en ningún lado. El cambio de año (2027) se plantea cuando
+  haga falta.
 
 ### Etapa 3 — Fase 2: servicios 50/50 y transferencias
 
