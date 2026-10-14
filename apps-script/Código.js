@@ -207,15 +207,21 @@ function comoPlata(n) {
  * El archivo queda visible para cualquiera que tenga el link, asi la
  * otra persona lo puede abrir desde la planilla.
  */
-function guardarComprobante(archivo, nombreSugerido) {
+/**
+ * Sube el comprobante a "Comprobantes depto" del Drive de quien carga, como
+ * "AAAA-MM-DD <nombre sugerido> - <archivo>" (#61). La fecha es la del
+ * movimiento y se valida antes de crear el archivo: si no, queda suelto.
+ */
+function guardarComprobante(archivo, nombreSugerido, fecha) {
   if (!archivo || !archivo.datos) return '';
+  aFecha(fecha);
 
   var carpeta = carpetaComprobantes();
 
   var blob = Utilities.newBlob(
     Utilities.base64Decode(archivo.datos),
     archivo.tipo || 'application/octet-stream',
-    nombreSugerido + ' - ' + (archivo.nombre || 'comprobante')
+    fecha + ' ' + nombreSugerido + ' - ' + (archivo.nombre || 'comprobante')
   );
 
   var file = carpeta.createFile(blob);
@@ -431,7 +437,7 @@ function escribirGasto_(d) {
   var hoja = planilla().getSheetByName(HOJA_GASTOS);
   var fila = ultimaFilaReal(hoja) + 1;
 
-  var link = guardarComprobante(d.comprobante, d.detalle || 'Gasto');
+  var link = guardarComprobante(d.comprobante, d.detalle || 'Gasto', d.fecha);
 
   hoja.getRange(fila, 1, 1, 7).setValues([[
     aFecha(d.fecha), d.categoria, d.detalle, d.descripcion,
@@ -466,7 +472,7 @@ function escribirServicio_(d) {
   var hoja = planilla().getSheetByName(HOJA_PAGOS_SERV);
   var fila = ultimaFilaReal(hoja) + 1;
 
-  var link = guardarComprobante(d.comprobante, d.servicio + ' ' + d.mes);
+  var link = guardarComprobante(d.comprobante, d.servicio + ' ' + d.mes, d.fecha);
 
   hoja.getRange(fila, 1, 1, 5).setValues([[
     aFecha(d.fecha), d.servicio, d.mes, monto, d.pagadoPor
@@ -495,7 +501,7 @@ function escribirIngreso_(d) {
   var hoja = planilla().getSheetByName(HOJA_INGRESOS);
   var fila = ultimaFilaReal(hoja) + 1;
 
-  var link = guardarComprobante(d.comprobante, d.concepto || 'Ingreso');
+  var link = guardarComprobante(d.comprobante, d.concepto || 'Ingreso', d.fecha);
 
   hoja.getRange(fila, 1, 1, 4).setValues([[
     aFecha(d.fecha),
