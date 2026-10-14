@@ -71,9 +71,13 @@ pasan siempre. En `develop`, `node --test 'pruebas/*.test.js'` tiene que salir
 en verde. La tabla
 de archivos está en `README.md`.
 
-**Límite conocido (#43):** hasta que se resuelva, el doble de planilla ignora
-la zona horaria y formatea siempre en UTC−3, mientras producción está en UTC.
-Una prueba de fechas del servidor que pasa no prueba nada sobre producción.
+La planilla falsa usa la zona `UTC` por defecto, como producción hoy
+(`crearServicios(planillas, { zona })`). Una prueba que cambia la zona tiene
+que poner también `process.env.TZ`: `new Date(a, m, d)` se arma en la zona del
+proceso en Node y en la del script en Apps Script.
+
+**En el iframe de Apps Script, `showPicker()` está bloqueado:** no se puede
+abrir un desplegable ni un calendario por código (#59, #60).
 
 ## Arquitectura (lo que cruza archivos)
 
