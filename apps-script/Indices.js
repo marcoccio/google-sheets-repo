@@ -35,6 +35,10 @@ function ipcAcumulado(desde) {
 }
 
 
+// La v3 se dio de baja (HTTP 410) en 2026. Si la v4 corre la misma suerte,
+// el error de la celda lo va a decir con el mismo codigo.
+var BCRA_MONETARIAS = 'https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias';
+
 /**
  * Busca el ID de la variable ICL en el BCRA.
  * No lo hardcodea: lo busca por descripcion, asi sigue andando
@@ -42,10 +46,6 @@ function ipcAcumulado(desde) {
  *
  * @return {number} El idVariable del ICL.
  */
-// La v3 se dio de baja (HTTP 410) en 2026. Si la v4 corre la misma suerte,
-// el error de la celda lo va a decir con el mismo codigo.
-var BCRA_MONETARIAS = 'https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias';
-
 function idVariableICL() {
   var cache = CacheService.getScriptCache();
   var guardado = cache.get('ID_ICL');
