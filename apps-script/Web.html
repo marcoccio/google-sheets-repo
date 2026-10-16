@@ -558,7 +558,7 @@
       <div class="campo">
         <label>Comprobante (opcional)</label>
         <label class="adjunto" id="lblGasto">
-          Tocá para adjuntar foto o PDF
+          <span>Tocá para adjuntar foto o PDF</span>
           <input type="file" id="archGasto" accept="image/*,application/pdf" onchange="marcarAdjunto('archGasto','lblGasto')">
         </label>
       </div>
@@ -596,7 +596,7 @@
       <div class="campo">
         <label>Comprobante (opcional)</label>
         <label class="adjunto" id="lblServicio">
-          Tocá para adjuntar foto o PDF
+          <span>Tocá para adjuntar foto o PDF</span>
           <input type="file" id="archServicio" accept="image/*,application/pdf" onchange="marcarAdjunto('archServicio','lblServicio')">
         </label>
       </div>
@@ -640,7 +640,7 @@
       <div class="campo">
         <label>Comprobante (opcional)</label>
         <label class="adjunto" id="lblIngreso">
-          Tocá para adjuntar foto o PDF
+          <span>Tocá para adjuntar foto o PDF</span>
           <input type="file" id="archIngreso" accept="image/*,application/pdf" onchange="marcarAdjunto('archIngreso','lblIngreso')">
         </label>
       </div>
@@ -1043,14 +1043,16 @@
 
   /* ---- Comprobantes ---- */
 
+  // El texto va en el <span>: pisar el textContent del label borra el input
+  // que tiene adentro, y el proximo envio no lo encuentra (#66).
   function marcarAdjunto(idInput, idLabel) {
     var f = document.getElementById(idInput).files[0];
     var lbl = document.getElementById(idLabel);
     if (f) {
-      lbl.textContent = '📎 ' + f.name;
+      lbl.querySelector('span').textContent = '📎 ' + f.name;
       lbl.classList.add('cargado');
     } else {
-      lbl.textContent = 'Tocá para adjuntar foto o PDF';
+      lbl.querySelector('span').textContent = 'Tocá para adjuntar foto o PDF';
       lbl.classList.remove('cargado');
     }
   }
@@ -1058,7 +1060,7 @@
   function limpiarAdjunto(idInput, idLabel) {
     document.getElementById(idInput).value = '';
     var lbl = document.getElementById(idLabel);
-    lbl.textContent = 'Tocá para adjuntar foto o PDF';
+    lbl.querySelector('span').textContent = 'Tocá para adjuntar foto o PDF';
     lbl.classList.remove('cargado');
   }
 
