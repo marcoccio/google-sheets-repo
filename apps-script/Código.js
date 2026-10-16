@@ -404,7 +404,8 @@ function unaVez(d, guardar) {
     if (previo !== null) return 'Ya estaba guardado. ' + previo;
 
     var resultado = guardar(d);
-    if (clave) cache.put(clave, resultado, 21600);
+    // El guardado ya se hizo: perder la deduplicacion es mejor que contestar error.
+    if (clave) { try { cache.put(clave, resultado, 21600); } catch (e) {} }
     return resultado;
   } finally {
     candado.releaseLock();
@@ -441,10 +442,17 @@ function escribirGasto_(d) {
     deshacerFila(hoja, fila, 7, 'El gasto');
   }
 
-  if (link) hoja.getRange(fila, 12).setFormula('=HYPERLINK("' + link + '";"Ver")');
+  var avisoLink = '';
+  if (link) {
+    try {
+      hoja.getRange(fila, 12).setFormula('=HYPERLINK("' + link + '";"Ver")');
+      avisoLink = ' (con comprobante)';
+    } catch (e) {
+      avisoLink = ' (sin el link del comprobante)';
+    }
+  }
 
-  return 'Gasto cargado: ' + d.detalle + ' ' + comoPlata(monto) +
-         (link ? ' (con comprobante)' : '');
+  return 'Gasto cargado: ' + d.detalle + ' ' + comoPlata(monto) + avisoLink;
 }
 
 
@@ -475,10 +483,18 @@ function escribirServicio_(d) {
     deshacerFila(hoja, fila, 5, 'El pago');
   }
 
-  if (link) hoja.getRange(fila, 6).setFormula('=HYPERLINK("' + link + '";"Ver")');
+  var avisoLink = '';
+  if (link) {
+    try {
+      hoja.getRange(fila, 6).setFormula('=HYPERLINK("' + link + '";"Ver")');
+      avisoLink = ' con comprobante';
+    } catch (e) {
+      avisoLink = ' (sin el link del comprobante)';
+    }
+  }
 
   return d.servicio + ' de ' + d.mes + ': ' + comoPlata(monto) +
-         ' (pagó ' + d.pagadoPor + ')' + (link ? ' con comprobante' : '');
+         ' (pagó ' + d.pagadoPor + ')' + avisoLink;
 }
 
 
@@ -507,9 +523,16 @@ function escribirIngreso_(d) {
     deshacerFila(hoja, fila, 4, 'El ingreso');
   }
 
-  if (link) hoja.getRange(fila, 5).setFormula('=HYPERLINK("' + link + '";"Ver")');
+  var avisoLink = '';
+  if (link) {
+    try {
+      hoja.getRange(fila, 5).setFormula('=HYPERLINK("' + link + '";"Ver")');
+    } catch (e) {
+      avisoLink = ' (sin el link del comprobante)';
+    }
+  }
 
-  return 'Ingreso cargado: ' + d.concepto + ' ' + comoPlata(monto);
+  return 'Ingreso cargado: ' + d.concepto + ' ' + comoPlata(monto) + avisoLink;
 }
 
 
@@ -933,22 +956,27 @@ function escribirMovimientoPersonal_(d) {
 
   var celda = hoja.getRange(fila, col);
   var previo = celda.getValue();
-  var actual = (typeof previo === 'number' && isFinite(previo)) ? previo : 0;
+  var actual = Number(previo) || 0;
 
   // Escribe y relee: si no quedo, avisa en vez de decir que se guardo.
   escribirYVerificar(celda, actual + monto,
                      d.hoja + ' > ' + d.categoria + ' > ' + MESES[fecha.getMonth()]);
 
   // La descripción queda como nota, para no perderla.
+  var avisoNota = '';
   if (d.descripcion) {
-    var nota = celda.getNote();
-    var linea = Utilities.formatDate(fecha, Session.getScriptTimeZone(), 'dd/MM') +
-                ': ' + d.descripcion + ' ' + comoPlata(monto);
-    celda.setNote(nota ? nota + '\n' + linea : linea);
+    try {
+      var nota = celda.getNote();
+      var linea = Utilities.formatDate(fecha, Session.getScriptTimeZone(), 'dd/MM') +
+                  ': ' + d.descripcion + ' ' + comoPlata(monto);
+      celda.setNote(nota ? nota + '\n' + linea : linea);
+    } catch (e) {
+      avisoNota = ' (sin la nota)';
+    }
   }
 
   return d.hoja + ' - ' + d.categoria + ': ' + comoPlata(monto) +
-         ' en ' + MESES[fecha.getMonth()];
+         ' en ' + MESES[fecha.getMonth()] + avisoNota;
 }
 
 
