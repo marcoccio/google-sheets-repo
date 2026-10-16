@@ -796,7 +796,6 @@
 </div>
 
 <div class="aviso" id="aviso"></div>
-<button class="secundario oculto" id="btnRecargar" onclick="recargar()">Recargar</button>
 
 <script>
   var OPC = null;
@@ -855,10 +854,6 @@
     llenar('conceptoIngreso', datos.conceptosIngreso);
     cargarDetalles();
     seleccionarMesActual();
-
-    // Despues de aplicarMiNombre y de llenar los selectores: si no, el
-    // borrador vuelve con "pagó" en el usuario actual (H3).
-    recuperarBorrador();
   }
 
   /** Deja seleccionado mi nombre en todos los selectores de persona. */
@@ -1115,8 +1110,8 @@
   var ENVIOS_SIN_RESPUESTA = {};
 
   /**
-   * Identifica el contenido de un envio, sin el adjunto: despues de recargar
-   * el comprobante no se recupera, y el reintento tiene que reusar el id.
+   * Identifica el contenido de un envio (sin el comprobante ni el idEnvio)
+   * para saber si un reintento corresponde al mismo envio y reusar el id.
    */
   function firmaEnvio(nombreFuncion, argumento) {
     return nombreFuncion + JSON.stringify(argumento, function (clave, valor) {
@@ -1148,12 +1143,10 @@
       terminado = true;
       FALLAS_SEGUIDAS++;
 
-      // Dos cortes seguidos: la sesion del iframe probablemente se vencio.
-      // Recargar lo decide el usuario con el boton: una recarga desde un
-      // temporizador, dentro del iframe de Apps Script, no es confiable (M2).
+      // Dos cortes seguidos: la sesion del iframe probablemente se vencio y
+      // hay que cerrar y volver a abrir la app (E3).
       if (FALLAS_SEGUIDAS >= 2) {
-        document.getElementById('btnRecargar').classList.remove('oculto');
-        alFallar({ message: 'La conexión parece cortada. Tocá Recargar: lo que escribiste no se pierde y reintentar no duplica.' });
+        alFallar({ message: 'La conexión parece cortada. Cerrá y volvé a abrir la app.' });
       } else {
         alFallar({ message: 'No sé si se guardó. Reintentar no duplica.' });
       }
@@ -1172,70 +1165,8 @@
         if (terminado) return;
         terminado = true;
         clearTimeout(reloj);
-        FALLAS_SEGUIDAS++;
         alFallar(e);
       })[nombreFuncion](argumento);
-  }
-
-  /**
-   * Lo que se guarda antes de recargar, en orden de restauracion: categoria
-   * va antes de detalle porque las opciones de detalle dependen de ella.
-   */
-  var CAMPOS_BORRADOR = [
-    'monto', 'categoria', 'detalle', 'descripcion', 'pagadoPor', 'division', 'fecha',
-    'montoServicio', 'servicio', 'mes', 'pagoServicio', 'fechaServicio',
-    'montoIngreso', 'conceptoIngreso', 'descripcionIngreso', 'recibidoPor', 'fechaIngreso',
-    'montoPersonal', 'categoriaPersonal', 'descripcionPersonal', 'fechaPersonal'
-  ];
-
-  /**
-   * Antes de recargar, guarda lo escrito para no perderlo: campos, selectores,
-   * fechas, la pestaña personal y los envios sin respuesta (para que el
-   * reintento despues de recargar no duplique).
-   */
-  function guardarBorrador() {
-    try {
-      var campos = {};
-      CAMPOS_BORRADOR.forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el && el.value) campos[id] = el.value;
-      });
-      var adjunto = ['archGasto', 'archServicio', 'archIngreso'].some(function (id) {
-        var el = document.getElementById(id);
-        return !!(el && el.files && el.files.length);
-      });
-      sessionStorage.setItem('borrador', JSON.stringify({
-        campos: campos,
-        tipoPersonal: TIPO_PERSONAL,
-        adjunto: adjunto,
-        envios: ENVIOS_SIN_RESPUESTA
-      }));
-    } catch (e) { /* si no hay sessionStorage, se pierde y listo */ }
-  }
-
-  function recuperarBorrador() {
-    try {
-      var guardado = sessionStorage.getItem('borrador');
-      if (!guardado) return;
-      sessionStorage.removeItem('borrador');
-      var b = JSON.parse(guardado);
-
-      ENVIOS_SIN_RESPUESTA = b.envios || {};
-      if (b.tipoPersonal) cambiarPersonal(b.tipoPersonal);
-      CAMPOS_BORRADOR.forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el && b.campos[id] !== undefined) el.value = b.campos[id];
-        if (id === 'categoria') cargarDetalles();
-      });
-
-      mostrar('Recuperé lo que estabas escribiendo.' +
-              (b.adjunto ? ' El comprobante no se recupera: volvé a adjuntarlo.' : ''), 'ok');
-    } catch (e) { /* nada */ }
-  }
-
-  function recargar() {
-    guardarBorrador();
-    location.reload();
   }
 
   /**
