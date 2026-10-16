@@ -219,110 +219,41 @@ test('M2: nunca recarga sola', async () => {
   assert.equal(obtenerRecargas(), 0);
 });
 
-test('H3: el borrador conserva quién pagó y la fecha', () => {
-  const S = new Map();
-  S.getItem = key => (S.has(String(key)) ? S.get(String(key)) : null);
-  S.setItem = (key, val) => S.set(String(key), String(val));
-  S.removeItem = key => S.delete(String(key));
+test('E3: un error del servidor no cuenta como corte', async () => {
+  const { ctx, disparar, esperarTicks } = crearAmbiente();
+  for (let i = 0; i < 2; i++) {
+    ctx.document.getElementById('monto').value = '8000';
+    ctx.enviarGasto();
+    await esperarTicks();
+    ctx.llamadas.filter(l => l.nombre === 'guardarGasto').pop().fallo({ message: 'El monto tiene que ser mayor a cero.' });
+  }
 
-  // Página 1
-  const doc1 = crearDocumento();
-  const pagadoPor1 = crearSelect('pagadoPor', ['Marcos', 'Flor'], 1);
-  doc1.elementos.set('pagadoPor', pagadoPor1);
-  doc1.getElementById('monto').value = '45000';
-  doc1.getElementById('fecha').value = '2026-10-05';
+  ctx.document.getElementById('monto').value = '8000';
+  ctx.enviarGasto();
+  await esperarTicks();
+  disparar(t => t.ms >= 15000);
 
-  const ctx1 = cargarHtml('Web.html', {
-    document: doc1,
-    sessionStorage: S
-  });
-
-  ctx1.guardarBorrador();
-
-  // Página 2
-  const doc2 = crearDocumento();
-  const pagadoPor2 = crearSelect('pagadoPor', ['Marcos', 'Flor'], 0);
-  doc2.elementos.set('pagadoPor', pagadoPor2);
-
-  const ctx2 = cargarHtml('Web.html', {
-    document: doc2,
-    sessionStorage: S
-  });
-
-  ctx2.dispararEvento('load');
-
-  const llamadaOpciones = ctx2.llamadas.find(ll => ll.nombre === 'obtenerOpciones');
-  assert.ok(llamadaOpciones, 'Debe registrarse la llamada a obtenerOpciones');
-
-  const datosMinimos = {
-    yo: { nombre: 'Marcos', seguro: true, mail: 'marcos@example.com' },
-    categorias: [],
-    servicios: [],
-    meses: [],
-    personales: { Gastos: [] },
-    conceptosIngreso: [],
-    detalles: {}
-  };
-
-  llamadaOpciones.exito(datosMinimos);
-
-  assert.equal(doc2.getElementById('monto').value, '45000');
-  assert.equal(doc2.getElementById('pagadoPor').value, 'Flor');
-  assert.equal(doc2.getElementById('fecha').value, '2026-10-05');
+  assert.match(ctx.document.getElementById('aviso').textContent, /No sé si se guardó/);
 });
 
-test('H3: avisa que el comprobante no se recupera', () => {
-  const S = new Map();
-  S.getItem = key => (S.has(String(key)) ? S.get(String(key)) : null);
-  S.setItem = (key, val) => S.set(String(key), String(val));
-  S.removeItem = key => S.delete(String(key));
+test('E3: dos cortes seguidos piden cerrar y volver a abrir', async () => {
+  const { ctx, disparar, esperarTicks } = crearAmbiente();
+  for (let i = 0; i < 2; i++) {
+    ctx.document.getElementById('monto').value = '8000';
+    ctx.enviarGasto();
+    await esperarTicks();
+    disparar(t => t.ms >= 15000);
+  }
 
-  // Página 1
-  const doc1 = crearDocumento();
-  const pagadoPor1 = crearSelect('pagadoPor', ['Marcos', 'Flor'], 1);
-  doc1.elementos.set('pagadoPor', pagadoPor1);
-  doc1.getElementById('monto').value = '45000';
-  doc1.getElementById('fecha').value = '2026-10-05';
-  doc1.getElementById('archGasto').files = [
-    { name: 'recibo.pdf', size: 1000, type: 'application/pdf' }
-  ];
+  assert.equal(ctx.document.getElementById('aviso').textContent,
+    'La conexión parece cortada. Cerrá y volvé a abrir la app.');
+});
 
-  const ctx1 = cargarHtml('Web.html', {
-    document: doc1,
-    sessionStorage: S
-  });
-
-  ctx1.guardarBorrador();
-
-  // Página 2
-  const doc2 = crearDocumento();
-  const pagadoPor2 = crearSelect('pagadoPor', ['Marcos', 'Flor'], 0);
-  doc2.elementos.set('pagadoPor', pagadoPor2);
-
-  const ctx2 = cargarHtml('Web.html', {
-    document: doc2,
-    sessionStorage: S
-  });
-
-  ctx2.dispararEvento('load');
-
-  const llamadaOpciones = ctx2.llamadas.find(ll => ll.nombre === 'obtenerOpciones');
-  assert.ok(llamadaOpciones, 'Debe registrarse la llamada a obtenerOpciones');
-
-  const datosMinimos = {
-    yo: { nombre: 'Marcos', seguro: true, mail: 'marcos@example.com' },
-    categorias: [],
-    servicios: [],
-    meses: [],
-    personales: { Gastos: [] },
-    conceptosIngreso: [],
-    detalles: {}
-  };
-
-  llamadaOpciones.exito(datosMinimos);
-
-  const aviso = doc2.getElementById('aviso');
-  assert.match(aviso.textContent, /comprobante/i);
+test('#69: no queda nada del borrador ni del botón Recargar', () => {
+  const html = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '..', 'apps-script', 'Web.html'), 'utf8');
+  for (const resto of ['guardarBorrador', 'recuperarBorrador', 'CAMPOS_BORRADOR', 'recargar', 'btnRecargar', 'sessionStorage', 'location.reload']) {
+    assert.ok(!html.includes(resto), 'sigue estando ' + resto);
+  }
 });
 
 test('C1: si la respuesta llega después del timeout, el reintento reusa idEnvio', async () => {
@@ -365,79 +296,3 @@ function almacenamiento() {
   S.removeItem = k => S.delete(String(k));
   return S;
 }
-
-const OPCIONES_MINIMAS = {
-  yo: { nombre: 'Marcos', seguro: true, mail: 'marcos@example.com' },
-  categorias: [], servicios: [], meses: [], personales: { Gastos: [] },
-  conceptosIngreso: [], detalles: {}
-};
-
-test('M2: con dos cortes seguidos aparece Recargar, y recarga solo al tocarlo', async () => {
-  const { ctx, disparar, esperarTicks, obtenerRecargas } = crearAmbiente();
-  const boton = ctx.document.getElementById('btnRecargar');
-  boton.classList.add('oculto'); // como en el HTML
-  ctx.document.getElementById('monto').value = '8000';
-
-  for (let i = 0; i < 2; i++) {
-    ctx.enviarGasto();
-    await esperarTicks();
-    disparar(t => t.ms >= 15000);
-  }
-  disparar();
-
-  assert.equal(boton.classList.contains('oculto'), false);
-  assert.equal(obtenerRecargas(), 0);
-  ctx.recargar();
-  assert.equal(obtenerRecargas(), 1);
-});
-
-test('C1: después de tocar Recargar, el reintento del mismo gasto reusa idEnvio', async () => {
-  const S = almacenamiento();
-
-  const p1 = crearAmbiente({ sessionStorage: S });
-  p1.ctx.document.getElementById('monto').value = '8000';
-  p1.ctx.document.getElementById('fecha').value = '2026-10-11';
-  p1.ctx.enviarGasto();
-  await p1.esperarTicks();
-  p1.disparar(t => t.ms >= 15000);
-  p1.ctx.recargar();
-
-  const p2 = crearAmbiente({ sessionStorage: S });
-  p2.ctx.dispararEvento('load');
-  p2.ctx.llamadas.find(ll => ll.nombre === 'obtenerOpciones').exito(OPCIONES_MINIMAS);
-  assert.equal(p2.ctx.document.getElementById('monto').value, '8000');
-  p2.ctx.enviarGasto();
-  await p2.esperarTicks();
-
-  const id1 = p1.ctx.llamadas.find(ll => ll.nombre === 'guardarGasto').args[0].idEnvio;
-  const id2 = p2.ctx.llamadas.find(ll => ll.nombre === 'guardarGasto').args[0].idEnvio;
-  assert.equal(id2, id1);
-});
-
-test('C1: si había comprobante, el reintento después de Recargar (ya sin él) reusa idEnvio', async () => {
-  class LectorFalso {
-    readAsDataURL() {
-      setImmediate(() => { this.result = 'data:image/jpeg;base64,AAAA'; this.onload(); });
-    }
-  }
-  const S = almacenamiento();
-
-  const p1 = crearAmbiente({ sessionStorage: S, FileReader: LectorFalso });
-  p1.ctx.document.getElementById('monto').value = '8000';
-  p1.ctx.document.getElementById('fecha').value = '2026-10-11';
-  p1.ctx.document.getElementById('archGasto').files = [{ name: 'a.jpg', size: 1000, type: 'image/jpeg' }];
-  p1.ctx.enviarGasto();
-  await p1.esperarTicks();
-  p1.disparar(t => t.ms >= 45000);
-  p1.ctx.recargar();
-
-  const p2 = crearAmbiente({ sessionStorage: S });
-  p2.ctx.dispararEvento('load');
-  p2.ctx.llamadas.find(ll => ll.nombre === 'obtenerOpciones').exito(OPCIONES_MINIMAS);
-  p2.ctx.enviarGasto();
-  await p2.esperarTicks();
-
-  const id1 = p1.ctx.llamadas.find(ll => ll.nombre === 'guardarGasto').args[0].idEnvio;
-  const id2 = p2.ctx.llamadas.find(ll => ll.nombre === 'guardarGasto').args[0].idEnvio;
-  assert.equal(id2, id1);
-});
