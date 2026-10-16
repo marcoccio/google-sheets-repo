@@ -128,9 +128,14 @@ Drive. Decisión de Marcos del 16/10; queda para después de v12.
 |---|---|---|---|---|---|
 | 3.1 | **D1**: columna División en Pagos servicios (los pagos existentes pasan a "50/50"); filas Parte Marcos / Parte Flor en Servicios (D2 ya está en Web_v9) | feat | claude | 2.10 | Marcos aprueba el cambio de estructura antes de aplicarlo; totales de control iguales |
 | 3.2 | **D3**: hoja Transferencias (fecha, de, para, monto, descripción) y formulario en la app. **Sin** cálculo de quién le debe a quién | feat | claude (servidor) + gemini (formulario) | 2.10 | Prueba de `guardarTransferencia` con idempotencia (reusa 2.4) |
-| 3.4 | `estadoEnvio`: "El anterior sí se guardó, ¿lo corregís?" cuando se cambia el contenido después de un corte | feat | claude | 2.10 | Pruebas de punta a punta de los dos caminos |
-| 3.5 | Aviso cuando los dos cargan la misma compra (mismo monto, fecha y categoría, otra persona) | feat | claude | 2.10 | Avisa y deja confirmar |
-| 3.3 | Instalar v13 | chore | marcos + claude | 3.1, 3.2, 3.4, 3.5, 1.3, 1.4 | Igual que 2.10. `toca-produccion` |
+| 3.5 | Aviso cuando los dos cargan la misma compra (mismo monto, fecha y categoría, otra persona) | feat | claude | 2.10 | Avisa y deja confirmar. **Congelado** (fuera de v13) |
+| 3.3 | Instalar v13 | chore | marcos + claude | 1.2, 3.1, 3.2, 1.3, 1.4 | Igual que 2.10, con una transferencia en la prueba de `/dev`. `toca-produccion` |
+
+**Alcance de v13** (decisión de Marcos, 16/10/2026): 1.2, 3.1 y 3.2, en el
+milestone `v13`. 3.4 (`estadoEnvio`, #49) se **descartó**: con v12 los
+guardados tardan menos de 5 s y el lock corta a 10 s, así que el caso es muy
+raro. 3.5 (#50) y #73 (comprobante directo a Drive) quedan congelados. Qué
+etapa grande va después (4 o 5) se decide cuando v13 esté instalada.
 
 ### Etapa 4 — Fase 3: personal por filas (P1)
 
@@ -188,11 +193,13 @@ traspaso ni `.clasp.json`.
 **Lanzamiento.**
 
 ```
-bash ~/.claude/skills/gestion-agentes-gemini/scripts/agy-run.sh issue<N> ~/agy-trabajo/gastos/prompt-<N>.txt ~/agy-trabajo/gastos/<N> "Gemini 3.8 Flash (High)"
+bash ~/.claude/skills/gestion-agentes-gemini/scripts/agy-run.sh issue<N> ~/agy-trabajo/gastos/prompt-<N>.txt ~/agy-trabajo/gastos/<N> "Gemini 4 Argon (High)"
 ```
 
 El modelo va explícito: el default del lanzador ("Gemini 3.1 Pro (High)") ya no
-existe en `agy`, y Gemini 3.8 Flash es el único Gemini disponible. Con
+existe en `agy`. Desde agy 1.4.0 (16/10/2026) se usa **Gemini 4 Argon (High)**:
+hizo #68, #69 y #71 sin correcciones, con las pruebas escritas antes por Claude.
+Con
 `run_in_background`; el progreso se sigue en `<issue>.log`.
 
 **Bloque de herramientas** (al principio de cada prompt):
