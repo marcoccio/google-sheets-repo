@@ -203,11 +203,6 @@ function comoPlata(n) {
 /* ---------- Comprobantes ---------- */
 
 /**
- * Guarda un comprobante en el Drive de quien lo sube y devuelve el link.
- * El archivo queda visible para cualquiera que tenga el link, asi la
- * otra persona lo puede abrir desde la planilla.
- */
-/**
  * Sube el comprobante a "Comprobantes depto" del Drive de quien carga, como
  * "AAAA-MM-DD <nombre sugerido> - <archivo>" (#61). La fecha es la del
  * movimiento y se valida antes de crear el archivo: si no, queda suelto.
@@ -341,11 +336,7 @@ function obtenerAcumulado() {
     marcos: valor('Puso Marcos en el mes'),
     flor: valor('Puso Flor en el mes'),
     servicios: valor('Servicios del mes'),
-    gastos: valor('TOTAL GASTOS DEL MES'),
-    ingresos: valor('Ingresos del mes'),
-    neto: valor('NETO DEL MES (ingresos - gastos)'),
-    marcosAno: valor('ACUMULADO MARCOS'),
-    florAno: valor('ACUMULADO FLOR')
+    gastos: valor('TOTAL GASTOS DEL MES')
   };
 }
 
@@ -421,6 +412,7 @@ function unaVez(d, guardar) {
 }
 
 function guardarGasto(d) {
+  d.permitirNegativo = false;
   return unaVez(d, escribirGasto_);
 }
 
@@ -1078,7 +1070,7 @@ function registrarAjuste(d) {
 
   // El idEnvio sigue hasta el guardado, que es el que no escribe dos veces.
   if (d.destino === 'depto') {
-    return guardarGasto({
+    return unaVez({
       idEnvio: d.idEnvio,
       fecha: d.fecha,
       categoria: 'Varios',
@@ -1088,7 +1080,7 @@ function registrarAjuste(d) {
       pagadoPor: d.pagadoPor,
       division: d.division || '50/50',
       permitirNegativo: true
-    });
+    }, escribirGasto_);
   }
 
   return guardarMovimientoPersonal({

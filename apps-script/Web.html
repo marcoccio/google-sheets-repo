@@ -808,11 +808,7 @@
 
   // No se usa toISOString porque da la fecha en UTC; Argentina es UTC-3 y de 21:00 a 23:59 sale el día siguiente.
   function fechaLocal(d) {
-    var fecha = d || new Date();
-    var anio = fecha.getFullYear();
-    var mes = ('0' + (fecha.getMonth() + 1)).slice(-2);
-    var dia = ('0' + fecha.getDate()).slice(-2);
-    return anio + '-' + mes + '-' + dia;
+    return (d || new Date()).toLocaleDateString('en-CA');
   }
 
   window.addEventListener('load', function () {
@@ -1272,6 +1268,11 @@
 
     ocupado('btnGasto', 'Guardando…');
 
+    function fallo(e) {
+      ocupado('btnGasto', '', 'Guardar gasto');
+      mostrar(e.message, 'error');
+    }
+
     leerArchivo('archGasto').then(function (comp) {
       llamar('guardarGasto',
         {
@@ -1292,14 +1293,8 @@
           mostrar(msg, 'ok');
           refrescarAcumulado();
         },
-        function (e) {
-          ocupado('btnGasto', '', 'Guardar gasto');
-          mostrar(e.message, 'error');
-        });
-    }, function (e) {
-      ocupado('btnGasto', '', 'Guardar gasto');
-      mostrar(e.message, 'error');
-    });
+        fallo);
+    }, fallo);
   }
 
   function enviarServicio() {
@@ -1307,6 +1302,11 @@
     if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
 
     ocupado('btnServicio', 'Guardando…');
+
+    function fallo(e) {
+      ocupado('btnServicio', '', 'Guardar servicio');
+      mostrar(e.message, 'error');
+    }
 
     leerArchivo('archServicio').then(function (comp) {
       llamar('guardarServicio',
@@ -1325,14 +1325,8 @@
           mostrar(msg, 'ok');
           refrescarAcumulado();
         },
-        function (e) {
-          ocupado('btnServicio', '', 'Guardar servicio');
-          mostrar(e.message, 'error');
-        });
-    }, function (e) {
-      ocupado('btnServicio', '', 'Guardar servicio');
-      mostrar(e.message, 'error');
-    });
+        fallo);
+    }, fallo);
   }
 
   function enviarIngreso() {
@@ -1340,6 +1334,11 @@
     if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
 
     ocupado('btnIngreso', 'Guardando…');
+
+    function fallo(e) {
+      ocupado('btnIngreso', '', 'Guardar ingreso');
+      mostrar(e.message, 'error');
+    }
 
     leerArchivo('archIngreso').then(function (comp) {
       llamar('guardarIngreso',
@@ -1359,14 +1358,8 @@
           mostrar(msg, 'ok');
           refrescarAcumulado();
         },
-        function (e) {
-          ocupado('btnIngreso', '', 'Guardar ingreso');
-          mostrar(e.message, 'error');
-        });
-    }, function (e) {
-      ocupado('btnIngreso', '', 'Guardar ingreso');
-      mostrar(e.message, 'error');
-    });
+        fallo);
+    }, fallo);
   }
 
   /* ---- Personal ---- */
