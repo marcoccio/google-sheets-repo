@@ -394,7 +394,13 @@ function guardarMiNombre(nombre) {
  */
 function unaVez(d, guardar) {
   var candado = LockService.getScriptLock();
-  candado.waitLock(30000);
+  // 10 s, antes del corte de 15 s del cliente: si no, el cliente dice "No sé
+  // si se guardó" y el servidor guarda igual (#70). Sin lock no se escribio.
+  try {
+    candado.waitLock(10000);
+  } catch (e) {
+    throw new Error('Hay otro guardado en curso. Probá de nuevo en unos segundos: no se guardó.');
+  }
 
   try {
     var cache = CacheService.getScriptCache();
