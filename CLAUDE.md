@@ -36,9 +36,17 @@ El script está vinculado a la planilla, así que hay dos "producciones":
   personalizadas (`iclAcumulado`, ...) y los disparadores. **`clasp push`
   cambia HEAD al instante.**
 - **Web app (celular)**: la implementación `AKfycby7a82T...` fijada en la
-  versión 6. No cambia con `clasp push`; solo con
-  `clasp deploy -i <id> -V <versión>`. Se prueba antes en la URL `/dev`
-  (implementación @HEAD). Para volver atrás: redesplegar con `-V 6`.
+  versión 7 (v12, desde el 16/10/2026). No cambia con `clasp push`; solo con
+  `clasp version` + `clasp deploy -i <id> -V <versión>`. Para volver atrás:
+  redesplegar con `-V 6` (v9 + Web_v8).
+- **Se prueba antes en el `/dev` de la implementación @HEAD**,
+  `https://script.google.com/macros/s/AKfycbxyTuOSm3xrcuylSuGpA10zp9Eiyknjts5altwLKuo/dev`.
+  El `/dev` de la implementación del celular (`AKfycby7a82T.../dev`) sirve la
+  versión fijada, no HEAD: probar ahí muestra el código viejo (#66).
+- Las ejecuciones (función, estado, duración) se leen con la API
+  `processes:listScriptProcesses`: clasp está logueado con un cliente OAuth
+  propio que tiene el scope `script.processes`. Sin proyecto de GCP vinculado,
+  `clasp logs` no anda.
 
 `clasp pull`, `clasp show-file-status` y `clasp list-deployments` son seguros.
 `clasp push` y `clasp deploy` solo con confirmación de Marcos.

@@ -80,7 +80,7 @@ arreglo se vea como un diff limpio.
 | 2.7 | **H3 + M2**: el borrador guarda selectores y fechas y se restaura después de `aplicarMiNombre()`; avisa que el comprobante se pierde; botón "Recargar" en vez de `location.reload()` | fix | claude | 2.4 | Prueba H3: vuelve "pagó Flor" |
 | 2.8 | **G2**: Marcos y Flor borran a mano, cada uno con su cuenta, el disparador `revisarActividad` en script.google.com/home/triggers | chore | marcos (+ Flor) | — | Los dos confirman que en su lista no queda ningún disparador de este proyecto |
 | 2.9 | **B2 + B4**: sacar "Ajuste" de las categorías elegibles a mano de la personal; sacar `maximum-scale=1` | fix | claude | 2.1 | Revisión de diff |
-| 2.10 | Instalar v12 | chore | marcos + claude | 2.2–2.9, 2.11–2.18 | Push → prueba en `/dev` desde el teléfono (Enter, calendario, botón Recargar, borrador) → deploy → totales iguales. Tag `v12`. `toca-produccion` |
+| 2.10 | Instalar v12 | chore | marcos + claude | 2.2–2.9, 2.11–2.18 | Push → prueba en `/dev` (gasto, gasto, personal, servicio) → deploy → totales iguales. Tag `v12`. `toca-produccion`. **Instalado el 16/10/2026** (versión 7) |
 
 Agregados el 13/10/2026 después de la revisión de Claude Desktop
 (`revision-claude-desktop/`). Van en v12 porque el `clasp push` los expone o
@@ -106,6 +106,21 @@ Decisiones de esa prueba que no llevan issue:
   hoja Servicios (junio a diciembre de 2026). Es correcto: un mes sin columna
   no se sumaría en ningún lado. El cambio de año (2027) se plantea cuando
   haga falta.
+
+Agregados el 14/10/2026 en la auditoría de v12 (#67), después de que la prueba
+en `/dev` se colgara (#66):
+
+| # | Issue | Tipo | Ejecuta | Depende | Criterio de aceptación |
+|---|---|---|---|---|---|
+| 2.19 | En `/dev` la pantalla queda en "Guardando": el `textContent` del label borraba el input del comprobante (#72) | fix | claude | — | Gasto, gasto, personal, servicio sin trabas en `/dev` |
+| 2.20 | Auditoría de v12 contra lo instalado | chore | claude | — | Cada hallazgo con issue propio o descartado |
+| 2.21 | **E1 + E2**: lo que falla después de la escritura verificada no hace fallar el guardado; la personal suma montos guardados como texto | fix | **gemini 4** | 2.20 | El reintento no duplica; "1500" + 8000 = 9500 |
+| 2.22 | Sacar el borrador y el botón Recargar (E3, E5; H3 y M2 dejan de aplicar) | fix | **gemini 4** | 2.20 | Solo los cortes de espera cuentan como fallas |
+| 2.23 | `waitLock` a 10 s, antes del corte de 15 s del cliente (E4) | fix | claude | 2.20 | Sin lock: error claro, no escribe |
+| 2.24 | Limpieza: comentarios, un manejador de error, `fechaLocal`, acumulado, `permitirNegativo` en el servidor | refactor | **gemini 4** | 2.20 | `guardarGasto` desde el cliente rechaza negativos |
+
+Fuera de v12: **2.25 (#73)**, subir el comprobante directo del navegador a
+Drive. Decisión de Marcos del 16/10; queda para después de v12.
 
 ### Etapa 3 — Fase 2: servicios 50/50 y transferencias
 
