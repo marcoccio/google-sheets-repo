@@ -1,21 +1,32 @@
-# Pruebas de regresión
+# Gastos depto
 
-Cada archivo reproduce un bug encontrado en la revisión.
-Hoy todas **muestran el bug**. Cuando el arreglo esté hecho, cada una tiene que
-mostrar el comportamiento correcto.
+Web app de Apps Script y planillas de finanzas del hogar. El contexto completo
+está en `TRASPASO_claude_code.md`, el plan en `PLAN.md` y las reglas para
+trabajar en `CLAUDE.md`.
 
-| Archivo | Bug | Cómo correr |
-|---|---|---|
-| test_fecha_y_monto.js | A1: fechas inválidas aceptadas. También verifica aNumero (9/9 OK) | `node test_fecha_y_monto.js` |
-| test_watchdog_duplica.js | C1: el watchdog duplica gastos | `node test_watchdog_duplica.js` (tarda 26 s) |
-| test_zona_horaria.js | H1: después de las 21 h pone la fecha de mañana | `TZ=America/Argentina/Mendoza node test_zona_horaria.js` |
-| test_adjunto_descartado.js | H2: comprobante >8 MB se descarta en silencio | `node test_adjunto_descartado.js` |
-| test_borrador_pagador.js | H3: recuperar el borrador resetea quién pagó | `node test_borrador_pagador.js` |
+## Pruebas
 
-`test_fecha_y_monto.js` contiene `aFecha` y `aNumero` **copiadas de
-Codigo_v11.gs**. Con clasp conviene cambiarlo para que las extraiga del
-archivo real del proyecto, así la prueba sigue al código.
+```bash
+node --test 'pruebas/*.test.js'           # todas
+node --test pruebas/c1_servidor.test.js   # un archivo
+```
 
-Las otras cuatro simulan la lógica del frontend, porque dependen del navegador
-o de `google.script.run`. Son fieles a la secuencia del código, pero no
-reemplazan probar en el teléfono.
+Node 22, sin dependencias. `pruebas/arnes.js` carga el código **real** de
+`apps-script/` en `node:vm`; `pruebas/planilla_falsa.js` simula los servicios
+de Google del lado del servidor.
+
+Cada prueba que reproduce un bug lleva el código del hallazgo en el nombre
+(`A1: ...`, `C1: ...`) y **falla hasta que se arregla**. Las que empiezan con
+`CONTROL` tienen que pasar siempre.
+
+| Archivo | Hallazgos |
+|---|---|
+| `a1_fechas.test.js` | A1, y `aNumero` como control |
+| `h1_zona_horaria.test.js` | H1 (fija `TZ=America/Argentina/Mendoza` sola) |
+| `h2_adjunto.test.js` | H2 |
+| `c1_servidor.test.js` | C1 del lado del servidor |
+| `cliente_watchdog.test.js` | C1 del lado del cliente, M2, H3 |
+| `indices.test.js` | D-c (ICL en la API v4) |
+
+Las pruebas del cliente simulan el navegador: no reemplazan probar en el
+teléfono.

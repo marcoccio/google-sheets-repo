@@ -89,9 +89,12 @@ function crearElementoFalso(id = '') {
     }
   };
 
+  const atributos = new Map();
   return {
     id,
     value: '',
+    className: '',
+    selectedIndex: 0,
     textContent: '',
     innerHTML: '',
     href: '',
@@ -107,9 +110,30 @@ function crearElementoFalso(id = '') {
     blur: () => {},
     click: () => {},
     showPicker: () => {},
+    scrollIntoView: () => {},
+    setAttribute: (nombre, valor) => atributos.set(nombre, String(valor)),
+    getAttribute: nombre => (atributos.has(nombre) ? atributos.get(nombre) : null),
+    removeAttribute: nombre => atributos.delete(nombre),
     appendChild: () => {},
     querySelector: () => crearElementoFalso()
   };
+}
+
+/**
+ * Un <select> falso: `value` sigue a `selectedIndex` como en el navegador.
+ * Uso: doc.elementos.set('pagadoPor', crearSelect('pagadoPor', ['Marcos', 'Flor']))
+ */
+function crearSelect(id, textos, elegido = 0) {
+  const sel = crearElementoFalso(id);
+  delete sel.value;
+  sel.options = textos.map(t => ({ textContent: t, value: t }));
+  sel.selectedIndex = elegido;
+  Object.defineProperty(sel, 'value', {
+    enumerable: true,
+    get() { return sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].value : ''; },
+    set(v) { sel.selectedIndex = sel.options.findIndex(o => o.value === String(v)); }
+  });
+  return sel;
 }
 
 function crearDocumento() {
@@ -245,5 +269,6 @@ module.exports = {
   cargarServidor,
   cargarHtml,
   crearDocumento,
+  crearSelect,
   crearRunner
 };

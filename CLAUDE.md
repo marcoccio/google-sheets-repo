@@ -36,9 +36,17 @@ El script está vinculado a la planilla, así que hay dos "producciones":
   personalizadas (`iclAcumulado`, ...) y los disparadores. **`clasp push`
   cambia HEAD al instante.**
 - **Web app (celular)**: la implementación `AKfycby7a82T...` fijada en la
-  versión 6. No cambia con `clasp push`; solo con
-  `clasp deploy -i <id> -V <versión>`. Se prueba antes en la URL `/dev`
-  (implementación @HEAD). Para volver atrás: redesplegar con `-V 6`.
+  versión 7 (v12, desde el 16/10/2026). No cambia con `clasp push`; solo con
+  `clasp version` + `clasp deploy -i <id> -V <versión>`. Para volver atrás:
+  redesplegar con `-V 6` (v9 + Web_v8).
+- **Se prueba antes en el `/dev` de la implementación @HEAD**,
+  `https://script.google.com/macros/s/AKfycbxyTuOSm3xrcuylSuGpA10zp9Eiyknjts5altwLKuo/dev`.
+  El `/dev` de la implementación del celular (`AKfycby7a82T.../dev`) sirve la
+  versión fijada, no HEAD: probar ahí muestra el código viejo (#66).
+- Las ejecuciones (función, estado, duración) se leen con la API
+  `processes:listScriptProcesses`: clasp está logueado con un cliente OAuth
+  propio que tiene el scope `script.processes`. Sin proyecto de GCP vinculado,
+  `clasp logs` no anda.
 
 `clasp pull`, `clasp show-file-status` y `clasp list-deployments` son seguros.
 `clasp push` y `clasp deploy` solo con confirmación de Marcos.
@@ -49,31 +57,35 @@ instalar.
 
 ## Pruebas
 
-Node 22, sin dependencias ni `package.json`. `node --test` desde la raíz corre
-los `pruebas/*.test.js` (no le pases `pruebas/`: Node 22 lo toma como archivo y
-falla). Un archivo puntual: `node --test pruebas/arnes.test.js`.
+Node 22, sin dependencias ni `package.json`. Todas las pruebas:
+`node --test 'pruebas/*.test.js'` (con comillas). Sin el patrón, `node --test`
+también levanta cualquier `*.test.js` fuera de `pruebas/` (por ejemplo la
+carpeta local `revision-claude-desktop/`), y `node --test pruebas/` falla
+porque Node 22 lo toma como archivo. Un archivo puntual:
+`node --test pruebas/arnes.test.js`.
 
 `pruebas/arnes.js` carga el código **real** de `apps-script/` en un contexto
 `node:vm` con stubs de los servicios de Google y del navegador
 (`cargarServidor`, `cargarHtml`). Las pruebas nuevas usan el arnés; nunca
 copian funciones del código.
 
-Los `test_*.js` viejos son scripts que imprimen el bug (sin asserts); el #3 los
-pasa a `node:test`:
+`pruebas/planilla_falsa.js` (`crearServicios`) simula en memoria
+SpreadsheetApp, LockService, CacheService, PropertiesService, Session y
+Utilities para las pruebas del servidor.
 
-```bash
-node pruebas/test_fecha_y_monto.js                  # A1 + aNumero 9/9
-node pruebas/test_watchdog_duplica.js               # C1, tarda 26 s
-TZ=America/Argentina/Mendoza node pruebas/test_zona_horaria.js  # H1
-node pruebas/test_adjunto_descartado.js             # H2
-node pruebas/test_borrador_pagador.js               # H3
-```
+Las pruebas con el código de un hallazgo en el nombre (`A1: ...`, `C1: ...`)
+se escriben **antes** del arreglo y fallan hasta que se arregla; las `CONTROL`
+pasan siempre. En `develop`, `node --test 'pruebas/*.test.js'` tiene que salir
+en verde. La tabla
+de archivos está en `README.md`.
 
-- `pruebas/test_fecha_y_monto.js` tiene `aFecha`/`aNumero` **copiadas** de
-  `Codigo_v11.gs`. Una vez que el código esté en el repo, hay que extraerlas
-  del archivo real para que la prueba siga al código.
-- Las otras cuatro **simulan** la lógica del frontend (dependen del navegador o
-  de `google.script.run`). No reemplazan probar en el teléfono.
+La planilla falsa usa la zona `UTC` por defecto, como producción hoy
+(`crearServicios(planillas, { zona })`). Una prueba que cambia la zona tiene
+que poner también `process.env.TZ`: `new Date(a, m, d)` se arma en la zona del
+proceso en Node y en la del script en Apps Script.
+
+**En el iframe de Apps Script, `showPicker()` está bloqueado:** no se puede
+abrir un desplegable ni un calendario por código (#59, #60).
 
 ## Arquitectura (lo que cruza archivos)
 
@@ -86,8 +98,13 @@ node pruebas/test_borrador_pagador.js               # H3
   por número de fila.
 - La planilla está en español: las fórmulas usan `;` como separador. Con `,`
   dan `#ERROR!`.
-- Escrituras del servidor van dentro de un lock; la idempotencia de C1 se
-  resuelve con una clave por envío chequeada en CacheService dentro del lock.
+- Escrituras del servidor van por `unaVez()`: lock + `idEnvio` en
+  CacheService, chequeado y grabado dentro del mismo lock. La clave se graba
+  solo si el guardado terminó bien. El cliente (`llamar()`) reusa el
+  `idEnvio` mientras el envío no tenga una respuesta **exitosa** y el
+  contenido (sin el adjunto) sea el mismo; los envíos pendientes viajan en el
+  borrador. Todo formulario de la web app que escriba pasa por `llamar()`
+  (el panel lateral no: corre en la PC, ver #46).
 - Montos: `aNumero` aplica la regla argentina (`"15.250"` = quince mil
   doscientos cincuenta). Es acordado, no es bug.
 

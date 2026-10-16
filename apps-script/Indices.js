@@ -35,6 +35,10 @@ function ipcAcumulado(desde) {
 }
 
 
+// La v3 se dio de baja (HTTP 410) en 2026. Si la v4 corre la misma suerte,
+// el error de la celda lo va a decir con el mismo codigo.
+var BCRA_MONETARIAS = 'https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias';
+
 /**
  * Busca el ID de la variable ICL en el BCRA.
  * No lo hardcodea: lo busca por descripcion, asi sigue andando
@@ -42,10 +46,6 @@ function ipcAcumulado(desde) {
  *
  * @return {number} El idVariable del ICL.
  */
-// La v3 se dio de baja (HTTP 410) en 2026. Si la v4 corre la misma suerte,
-// el error de la celda lo va a decir con el mismo codigo.
-var BCRA_MONETARIAS = 'https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias';
-
 function idVariableICL() {
   var cache = CacheService.getScriptCache();
   var guardado = cache.get('ID_ICL');
@@ -59,8 +59,9 @@ function idVariableICL() {
     if (!data.results || !data.metadata) throw new Error('No pude leer las variables del BCRA.');
 
     for (var i = 0; i < data.results.length; i++) {
+      // Comienzo exacto: una subcadena como "icl" tambien esta en "ciclo".
       var d = String(data.results[i].descripcion).toLowerCase();
-      if (d.indexOf('icl') !== -1 || d.indexOf('contratos de locac') !== -1) {
+      if (d.indexOf('índice para contratos de locación') === 0) {
         cache.put('ID_ICL', String(data.results[i].idVariable), 21600);
         return data.results[i].idVariable;
       }
@@ -72,6 +73,17 @@ function idVariableICL() {
   }
 
   throw new Error('No encontre el ICL entre las variables del BCRA.');
+}
+
+
+/**
+ * Fecha 'yyyy-MM-dd' en la zona de la planilla. La fecha la arma la planilla
+ * (DATE(2026;5;1) es medianoche en SU zona): formatearla en otra la corre un
+ * dia, como el 30/04 que daba con 'GMT-3' fijo y la planilla en UTC.
+ */
+function diaDePlanilla(fecha) {
+  var zona = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  return Utilities.formatDate(fecha, zona, 'yyyy-MM-dd');
 }
 
 
@@ -98,8 +110,8 @@ function iclAcumulado(desde) {
   var inicio = new Date(desde);
 
   var hasta = new Date();
-  var desdeTexto = Utilities.formatDate(inicio, 'GMT-3', 'yyyy-MM-dd');
-  var hastaTexto = Utilities.formatDate(hasta, 'GMT-3', 'yyyy-MM-dd');
+  var desdeTexto = diaDePlanilla(inicio);
+  var hastaTexto = diaDePlanilla(hasta);
 
   var datos = serieICL(desdeTexto, hastaTexto);
 
@@ -130,7 +142,7 @@ function iclAcumulado(desde) {
  */
 function icl(fecha) {
   var f = fecha ? new Date(fecha) : new Date();
-  var texto = Utilities.formatDate(f, 'GMT-3', 'yyyy-MM-dd');
+  var texto = diaDePlanilla(f);
 
   var datos = serieICL(texto, texto);
 

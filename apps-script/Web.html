@@ -229,6 +229,22 @@
     padding-right: 34px;
   }
 
+  /* Tocar en cualquier parte del campo de fecha abre el calendario (#60): el
+     indicador nativo, transparente, cubre todo el campo. No se puede abrir con
+     showPicker(): el iframe de Apps Script lo bloquea. */
+  input[type="date"] {
+    position: relative;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    opacity: 0;
+    cursor: pointer;
+  }
+
   input:focus, select:focus {
     outline: 2px solid var(--acento);
     outline-offset: -1px;
@@ -473,12 +489,8 @@
   </div>
 
   <div class="detalle" id="detalleAcumulado">
-    <div class="fila"><span>Gastos del mes</span><strong id="detGastos">-</strong></div>
-    <div class="fila"><span>Ingresos del mes</span><strong id="detIngresos">-</strong></div>
-    <div class="fila"><span>Neto del mes</span><strong id="detNeto">-</strong></div>
-    <div class="fila"><span>Marcos en el año</span><strong id="detMarcosAno">-</strong></div>
-    <div class="fila"><span>Flor en el año</span><strong id="detFlorAno">-</strong></div>
     <div class="fila"><span>Servicios del mes</span><strong id="detServicios">-</strong></div>
+    <div class="fila"><span>Gastos del mes</span><strong id="detGastos">-</strong></div>
   </div>
 
   <div class="pie" id="pieMes"></div>
@@ -546,7 +558,7 @@
       <div class="campo">
         <label>Comprobante (opcional)</label>
         <label class="adjunto" id="lblGasto">
-          Tocá para adjuntar foto o PDF
+          <span>Tocá para adjuntar foto o PDF</span>
           <input type="file" id="archGasto" accept="image/*,application/pdf" onchange="marcarAdjunto('archGasto','lblGasto')">
         </label>
       </div>
@@ -584,7 +596,7 @@
       <div class="campo">
         <label>Comprobante (opcional)</label>
         <label class="adjunto" id="lblServicio">
-          Tocá para adjuntar foto o PDF
+          <span>Tocá para adjuntar foto o PDF</span>
           <input type="file" id="archServicio" accept="image/*,application/pdf" onchange="marcarAdjunto('archServicio','lblServicio')">
         </label>
       </div>
@@ -628,7 +640,7 @@
       <div class="campo">
         <label>Comprobante (opcional)</label>
         <label class="adjunto" id="lblIngreso">
-          Tocá para adjuntar foto o PDF
+          <span>Tocá para adjuntar foto o PDF</span>
           <input type="file" id="archIngreso" accept="image/*,application/pdf" onchange="marcarAdjunto('archIngreso','lblIngreso')">
         </label>
       </div>
@@ -747,7 +759,7 @@
             <label for="pagadoAjuste">Quién lo pagó</label>
             <select id="pagadoAjuste"><option>Marcos</option><option>Flor</option></select>
           </div>
-          <button class="secundario" onclick="cargarAjuste()">Cargar la diferencia como ajuste</button>
+          <button class="secundario" id="btnAjuste" onclick="cargarAjuste()">Cargar la diferencia como ajuste</button>
         </div>
       </div>
     </div>
@@ -756,27 +768,8 @@
   <!-- ============ AJUSTES ============ -->
   <div id="zonaAjustes" class="oculto">
     <div class="tarjeta">
-      <div class="nota">
-        El recordatorio es tuyo. Se activa por separado en cada cuenta y el mail
-        te llega solo a vos.
-      </div>
-
-      <div class="linea"><span>Tu mail</span><strong id="recMail">-</strong></div>
-      <div class="linea"><span>Último movimiento</span><strong id="recUltimo">-</strong></div>
-      <div class="linea"><span>Estado</span><strong id="recEstado">-</strong></div>
-
-      <div class="campo" style="margin-top:16px">
-        <label for="recDias">Avisarme si pasan</label>
-        <select id="recDias">
-          <option value="1">1 día sin cargar nada</option>
-          <option value="2">2 días sin cargar nada</option>
-          <option value="3">3 días sin cargar nada</option>
-          <option value="7">7 días sin cargar nada</option>
-        </select>
-      </div>
-
-      <button class="guardar" id="btnActivar" onclick="activarRec()">Activar recordatorio</button>
-      <button class="secundario oculto" id="btnApagar" onclick="apagarRec()">Apagar recordatorio</button>
+      <div class="linea"><span>Entraste como</span><strong id="ajMail">-</strong></div>
+      <div class="linea"><span>Te cargo como</span><strong id="ajNombre">-</strong></div>
     </div>
 
     <div class="tarjeta" style="margin-top:14px">
@@ -812,8 +805,13 @@
   var YO = 'Marcos';
   var ULTIMA_CONCILIACION = null;
 
+  // No se usa toISOString porque da la fecha en UTC; Argentina es UTC-3 y de 21:00 a 23:59 sale el día siguiente.
+  function fechaLocal(d) {
+    return (d || new Date()).toLocaleDateString('en-CA');
+  }
+
   window.addEventListener('load', function () {
-    var hoy = new Date().toISOString().slice(0, 10);
+    var hoy = fechaLocal(new Date());
     ['fecha', 'fechaServicio', 'fechaIngreso', 'fechaPersonal', 'hasta'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.value = hoy;
@@ -821,7 +819,7 @@
 
     var hace30 = new Date();
     hace30.setDate(hace30.getDate() - 30);
-    document.getElementById('desde').value = hace30.toISOString().slice(0, 10);
+    document.getElementById('desde').value = fechaLocal(hace30);
 
     google.script.run.withSuccessHandler(iniciar).obtenerOpciones();
     google.script.run
@@ -829,6 +827,11 @@
         document.getElementById('verPlanilla').href = url;
       })
       .urlPlanilla();
+
+    conectarEnter('monto');
+    conectarEnter('montoServicio');
+    conectarEnter('montoIngreso');
+    conectarEnter('montoPersonal');
 
     history.replaceState({ seccion: 'depto' }, '', '#depto');
 
@@ -921,12 +924,8 @@
         document.getElementById('accMarcos').textContent = d.marcos;
         document.getElementById('accFlor').textContent = d.flor;
         document.getElementById('pieMes').textContent = d.mes + ' - tocá los números para ver el detalle';
-        document.getElementById('detGastos').textContent = d.gastos || '-';
-        document.getElementById('detIngresos').textContent = d.ingresos || '-';
-        document.getElementById('detNeto').textContent = d.neto || '-';
-        document.getElementById('detMarcosAno').textContent = d.marcosAno || '-';
-        document.getElementById('detFlorAno').textContent = d.florAno || '-';
         document.getElementById('detServicios').textContent = d.servicios || '-';
+        document.getElementById('detGastos').textContent = d.gastos || '-';
       })
       .withFailureHandler(function () {
         document.getElementById('pieMes').textContent = '';
@@ -986,7 +985,10 @@
       document.getElementById('destConciliar').classList.add('activo');
     } else {
       document.getElementById('zonaAjustes').classList.remove('oculto');
-      cargarRecordatorio();
+      if (OPC && OPC.yo) {
+        document.getElementById('ajMail').textContent = OPC.yo.mail || '-';
+        document.getElementById('ajNombre').textContent = YO;
+      }
     }
     limpiarAviso();
   }
@@ -1032,14 +1034,16 @@
 
   /* ---- Comprobantes ---- */
 
+  // El texto va en el <span>: pisar el textContent del label borra el input
+  // que tiene adentro, y el proximo envio no lo encuentra (#66).
   function marcarAdjunto(idInput, idLabel) {
     var f = document.getElementById(idInput).files[0];
     var lbl = document.getElementById(idLabel);
     if (f) {
-      lbl.textContent = '📎 ' + f.name;
+      lbl.querySelector('span').textContent = '📎 ' + f.name;
       lbl.classList.add('cargado');
     } else {
-      lbl.textContent = 'Tocá para adjuntar foto o PDF';
+      lbl.querySelector('span').textContent = 'Tocá para adjuntar foto o PDF';
       lbl.classList.remove('cargado');
     }
   }
@@ -1047,19 +1051,18 @@
   function limpiarAdjunto(idInput, idLabel) {
     document.getElementById(idInput).value = '';
     var lbl = document.getElementById(idLabel);
-    lbl.textContent = 'Tocá para adjuntar foto o PDF';
+    lbl.querySelector('span').textContent = 'Tocá para adjuntar foto o PDF';
     lbl.classList.remove('cargado');
   }
 
   /** Lee el archivo y devuelve una promesa con {nombre, tipo, datos}. */
   function leerArchivo(idInput) {
-    return new Promise(function (resolver) {
+    return new Promise(function (resolver, rechazar) {
       var f = document.getElementById(idInput).files[0];
       if (!f) return resolver(null);
 
       if (f.size > 8 * 1024 * 1024) {
-        mostrar('El archivo supera los 8 MB. Probá con una foto más liviana.', 'error');
-        return resolver(null);
+        return rechazar(new Error('El archivo supera los 8 MB. Probá con una foto más liviana.'));
       }
 
       var lector = new FileReader();
@@ -1070,7 +1073,9 @@
           datos: lector.result.split(',')[1]
         });
       };
-      lector.onerror = function () { resolver(null); };
+      lector.onerror = function () {
+        rechazar(new Error('No pude leer el archivo. Probá elegirlo de nuevo.'));
+      };
       lector.readAsDataURL(f);
     });
   }
@@ -1080,10 +1085,104 @@
     var el = document.getElementById(id);
     var v = el ? el.value : '';
     if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-      v = new Date().toISOString().slice(0, 10);
+      v = fechaLocal(new Date());
       if (el) el.value = v;
     }
     return v;
+  }
+
+  /**
+   * Envuelve una llamada al servidor con un limite de tiempo.
+   *
+   * Apps Script a veces no contesta nunca (la sesion del iframe se vence si
+   * la pagina quedo abierta mucho rato) y no dispara ni el success ni el
+   * failure: el boton se queda en "Guardando..." para siempre. Esto corta
+   * esa espera y deja reintentar.
+   *
+   * Que se corte la espera no quiere decir que el servidor no haya escrito
+   * (C1). Cada envio lleva un idEnvio, y el servidor no escribe dos veces el
+   * mismo. Si se corta la espera, el reintento del MISMO envio reusa el id;
+   * si el servidor contesto bien, el proximo envio lleva uno nuevo.
+   */
+  var FALLAS_SEGUIDAS = 0;
+  var ESPERA_MS = 15000;
+  var ESPERA_CON_ADJUNTO_MS = 45000;
+  var ENVIOS_SIN_RESPUESTA = {};
+
+  /**
+   * Identifica el contenido de un envio (sin el comprobante ni el idEnvio)
+   * para saber si un reintento corresponde al mismo envio y reusar el id.
+   */
+  function firmaEnvio(nombreFuncion, argumento) {
+    return nombreFuncion + JSON.stringify(argumento, function (clave, valor) {
+      return (clave === 'comprobante' || clave === 'idEnvio') ? undefined : valor;
+    });
+  }
+
+  function llamar(nombreFuncion, argumento, alSalirBien, alFallar) {
+    var terminado = false;
+
+    var firma = firmaEnvio(nombreFuncion, argumento);
+    var pendiente = ENVIOS_SIN_RESPUESTA[nombreFuncion];
+    argumento.idEnvio = (pendiente && pendiente.firma === firma)
+      ? pendiente.id
+      : Date.now().toString(36) + Math.random().toString(36).slice(2);
+    ENVIOS_SIN_RESPUESTA[nombreFuncion] = { id: argumento.idEnvio, firma: firma };
+
+    // Solo una respuesta exitosa libera el id (#44): un fallo puede ser de red
+    // despues de que el servidor escribio. Reusarlo es seguro: el servidor
+    // graba la clave solo si el guardado termino bien. Una respuesta que llega
+    // despues del corte tampoco lo libera: la pantalla sigue diciendo "No sé si
+    // se guardó", y el reintento tiene que reusarlo.
+    function contesto() {
+      delete ENVIOS_SIN_RESPUESTA[nombreFuncion];
+    }
+
+    var reloj = setTimeout(function () {
+      if (terminado) return;
+      terminado = true;
+      FALLAS_SEGUIDAS++;
+
+      // Dos cortes seguidos: la sesion del iframe probablemente se vencio y
+      // hay que cerrar y volver a abrir la app (E3).
+      if (FALLAS_SEGUIDAS >= 2) {
+        alFallar({ message: 'La conexión parece cortada. Cerrá y volvé a abrir la app.' });
+      } else {
+        alFallar({ message: 'No sé si se guardó. Reintentar no duplica.' });
+      }
+    }, argumento.comprobante ? ESPERA_CON_ADJUNTO_MS : ESPERA_MS);
+
+    google.script.run
+      .withSuccessHandler(function (r) {
+        if (terminado) return;
+        terminado = true;
+        contesto();
+        clearTimeout(reloj);
+        FALLAS_SEGUIDAS = 0;
+        alSalirBien(r);
+      })
+      .withFailureHandler(function (e) {
+        if (terminado) return;
+        terminado = true;
+        clearTimeout(reloj);
+        alFallar(e);
+      })[nombreFuncion](argumento);
+  }
+
+  /**
+   * Enter en el monto solo cierra el teclado (#59). Antes saltaba al
+   * desplegable y lo abria con showPicker(), pero el iframe de Apps Script lo
+   * bloquea: el desplegable quedaba con el foco, cerrado, y trababa la pantalla.
+   */
+  function conectarEnter(idInput) {
+    var el = document.getElementById(idInput);
+    if (!el) return;
+    el.setAttribute('enterkeyhint', 'done');
+    el.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      el.blur();
+    });
   }
 
   function ocupado(id, texto, original) {
@@ -1100,21 +1199,14 @@
 
     ocupado('btnGasto', 'Guardando…');
 
+    function fallo(e) {
+      ocupado('btnGasto', '', 'Guardar gasto');
+      mostrar(e.message, 'error');
+    }
+
     leerArchivo('archGasto').then(function (comp) {
-      google.script.run
-        .withSuccessHandler(function (msg) {
-          ocupado('btnGasto', '', 'Guardar gasto');
-          document.getElementById('monto').value = '';
-          document.getElementById('descripcion').value = '';
-          limpiarAdjunto('archGasto', 'lblGasto');
-          mostrar(msg, 'ok');
-          refrescarAcumulado();
-        })
-        .withFailureHandler(function (e) {
-          ocupado('btnGasto', '', 'Guardar gasto');
-          mostrar(e.message, 'error');
-        })
-        .guardarGasto({
+      llamar('guardarGasto',
+        {
           fecha: fechaDe('fecha'),
           categoria: document.getElementById('categoria').value,
           detalle: document.getElementById('detalle').value,
@@ -1123,8 +1215,17 @@
           pagadoPor: document.getElementById('pagadoPor').value,
           division: document.getElementById('division').value,
           comprobante: comp
-        });
-    });
+        },
+        function (msg) {
+          ocupado('btnGasto', '', 'Guardar gasto');
+          document.getElementById('monto').value = '';
+          document.getElementById('descripcion').value = '';
+          limpiarAdjunto('archGasto', 'lblGasto');
+          mostrar(msg, 'ok');
+          refrescarAcumulado();
+        },
+        fallo);
+    }, fallo);
   }
 
   function enviarServicio() {
@@ -1133,28 +1234,30 @@
 
     ocupado('btnServicio', 'Guardando…');
 
+    function fallo(e) {
+      ocupado('btnServicio', '', 'Guardar servicio');
+      mostrar(e.message, 'error');
+    }
+
     leerArchivo('archServicio').then(function (comp) {
-      google.script.run
-        .withSuccessHandler(function (msg) {
-          ocupado('btnServicio', '', 'Guardar servicio');
-          document.getElementById('montoServicio').value = '';
-          limpiarAdjunto('archServicio', 'lblServicio');
-          mostrar(msg, 'ok');
-          refrescarAcumulado();
-        })
-        .withFailureHandler(function (e) {
-          ocupado('btnServicio', '', 'Guardar servicio');
-          mostrar(e.message, 'error');
-        })
-        .guardarServicio({
+      llamar('guardarServicio',
+        {
           fecha: fechaDe('fechaServicio'),
           servicio: document.getElementById('servicio').value,
           mes: document.getElementById('mes').value,
           monto: monto,
           pagadoPor: document.getElementById('pagoServicio').value,
           comprobante: comp
-        });
-    });
+        },
+        function (msg) {
+          ocupado('btnServicio', '', 'Guardar servicio');
+          document.getElementById('montoServicio').value = '';
+          limpiarAdjunto('archServicio', 'lblServicio');
+          mostrar(msg, 'ok');
+          refrescarAcumulado();
+        },
+        fallo);
+    }, fallo);
   }
 
   function enviarIngreso() {
@@ -1163,29 +1266,31 @@
 
     ocupado('btnIngreso', 'Guardando…');
 
+    function fallo(e) {
+      ocupado('btnIngreso', '', 'Guardar ingreso');
+      mostrar(e.message, 'error');
+    }
+
     leerArchivo('archIngreso').then(function (comp) {
-      google.script.run
-        .withSuccessHandler(function (msg) {
-          ocupado('btnIngreso', '', 'Guardar ingreso');
-          document.getElementById('montoIngreso').value = '';
-          document.getElementById('descripcionIngreso').value = '';
-          limpiarAdjunto('archIngreso', 'lblIngreso');
-          mostrar(msg, 'ok');
-          refrescarAcumulado();
-        })
-        .withFailureHandler(function (e) {
-          ocupado('btnIngreso', '', 'Guardar ingreso');
-          mostrar(e.message, 'error');
-        })
-        .guardarIngreso({
+      llamar('guardarIngreso',
+        {
           fecha: fechaDe('fechaIngreso'),
           concepto: document.getElementById('conceptoIngreso').value,
           descripcion: document.getElementById('descripcionIngreso').value,
           monto: monto,
           recibidoPor: document.getElementById('recibidoPor').value,
           comprobante: comp
-        });
-    });
+        },
+        function (msg) {
+          ocupado('btnIngreso', '', 'Guardar ingreso');
+          document.getElementById('montoIngreso').value = '';
+          document.getElementById('descripcionIngreso').value = '';
+          limpiarAdjunto('archIngreso', 'lblIngreso');
+          mostrar(msg, 'ok');
+          refrescarAcumulado();
+        },
+        fallo);
+    }, fallo);
   }
 
   /* ---- Personal ---- */
@@ -1266,24 +1371,24 @@
     var texto = etiquetas[TIPO_PERSONAL];
     ocupado('btnPersonal', 'Guardando...');
 
-    google.script.run
-      .withSuccessHandler(function (msg) {
-        ocupado('btnPersonal', '', texto);
-        document.getElementById('montoPersonal').value = '';
-        document.getElementById('descripcionPersonal').value = '';
-        mostrar(msg, 'ok');
-        refrescarTotalPersonal();
-      })
-      .withFailureHandler(function (e) {
-        ocupado('btnPersonal', '', texto);
-        mostrar(e.message, 'error');
-      })
-      .guardarMovimientoPersonal({
+    llamar('guardarMovimientoPersonal',
+      {
         fecha: fechaDe('fechaPersonal'),
         hoja: TIPO_PERSONAL,
         categoria: document.getElementById('categoriaPersonal').value,
         descripcion: document.getElementById('descripcionPersonal').value,
         monto: monto
+      },
+      function (msg) {
+        ocupado('btnPersonal', '', texto);
+        document.getElementById('montoPersonal').value = '';
+        document.getElementById('descripcionPersonal').value = '';
+        mostrar(msg, 'ok');
+        refrescarTotalPersonal();
+      },
+      function (e) {
+        ocupado('btnPersonal', '', texto);
+        mostrar(e.message, 'error');
       });
   }
 
@@ -1328,57 +1433,30 @@
   function cargarAjuste() {
     if (!ULTIMA_CONCILIACION) return;
 
-    google.script.run
-      .withSuccessHandler(function (msg) {
+    var texto = 'Cargar la diferencia como ajuste';
+    ocupado('btnAjuste', 'Guardando…');
+
+    llamar('registrarAjuste',
+      {
+        destino: document.getElementById('destinoConciliar').value,
+        fecha: document.getElementById('hasta').value,
+        monto: ULTIMA_CONCILIACION.diferenciaNumero,
+        pagadoPor: document.getElementById('pagadoAjuste').value,
+        division: '50/50'
+      },
+      function (msg) {
+        ocupado('btnAjuste', '', texto);
         mostrar(msg, 'ok');
         document.getElementById('resultado').classList.remove('visible');
         document.getElementById('montoReal').value = '';
         ULTIMA_CONCILIACION = null;
         refrescarAcumulado();
         refrescarTotalPersonal();
-      })
-      .withFailureHandler(function (e) { mostrar(e.message, 'error'); })
-      .registrarAjuste({
-        destino: document.getElementById('destinoConciliar').value,
-        fecha: document.getElementById('hasta').value,
-        monto: ULTIMA_CONCILIACION.diferenciaNumero,
-        pagadoPor: document.getElementById('pagadoAjuste').value,
-        division: '50/50'
-      });
-  }
-
-  /* ---- Recordatorio ---- */
-
-  function pintarRecordatorio(e) {
-    document.getElementById('recMail').textContent = e.mail || '-';
-    document.getElementById('recUltimo').textContent = e.ultimo;
-    document.getElementById('recEstado').textContent = e.activo ? 'Activo' : 'Apagado';
-    document.getElementById('recDias').value = String(e.dias);
-    document.getElementById('btnActivar').textContent =
-      e.activo ? 'Actualizar recordatorio' : 'Activar recordatorio';
-    document.getElementById('btnApagar').classList.toggle('oculto', !e.activo);
-  }
-
-  function cargarRecordatorio() {
-    google.script.run
-      .withSuccessHandler(pintarRecordatorio)
-      .withFailureHandler(function (e) { mostrar(e.message, 'error'); })
-      .estadoRecordatorio();
-  }
-
-  function activarRec() {
-    ocupado('btnActivar', 'Activando...');
-    google.script.run
-      .withSuccessHandler(function (e) {
-        ocupado('btnActivar', '', 'Activar recordatorio');
-        pintarRecordatorio(e);
-        mostrar('Listo. Te vamos a avisar por mail a ' + e.mail + '.', 'ok');
-      })
-      .withFailureHandler(function (e) {
-        ocupado('btnActivar', '', 'Activar recordatorio');
+      },
+      function (e) {
+        ocupado('btnAjuste', '', texto);
         mostrar(e.message, 'error');
-      })
-      .activarRecordatorio(document.getElementById('recDias').value);
+      });
   }
 
   function desvincularPersonal() {
@@ -1391,15 +1469,6 @@
       .desvincularPersonal();
   }
 
-  function apagarRec() {
-    google.script.run
-      .withSuccessHandler(function (e) {
-        pintarRecordatorio(e);
-        mostrar('Recordatorio apagado.', 'ok');
-      })
-      .withFailureHandler(function (e) { mostrar(e.message, 'error'); })
-      .desactivarRecordatorio();
-  }
 </script>
 
 </body>
