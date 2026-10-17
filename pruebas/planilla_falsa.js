@@ -123,7 +123,7 @@ function crearHojaObj(hojaData) {
   };
 }
 
-function crearPlanillaObj(planillaData, zona = 'UTC') {
+function crearPlanillaObj(planillaData, zona = 'America/Argentina/Mendoza') {
   return {
     getId() {
       return planillaData.id;
@@ -196,7 +196,7 @@ function crearPropertiesStore() {
 // en la zona del proceso (process.env.TZ); por eso una prueba que usa opciones.zona
 // tiene que poner process.env.TZ igual a esa zona antes de cargar el código.
 function crearServicios(planillas = {}, opciones = {}) {
-  const zona = (opciones && opciones.zona) || 'UTC';
+  const zona = (opciones && opciones.zona) || 'America/Argentina/Mendoza';
   const planillasStore = new Map();
 
   for (const [idPlanilla, hojas] of Object.entries(planillas)) {

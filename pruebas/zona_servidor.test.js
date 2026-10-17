@@ -31,12 +31,12 @@ test('formatDate respeta la zona', () => {
   assert.equal(servicios.Utilities.formatDate(fecha, 'America/Argentina/Mendoza', 'yyyy-MM-dd'), '2026-10-31');
 });
 
-test('sin opciones, Session.getScriptTimeZone() es UTC', () => {
+test('sin opciones, la zona es la de produccion (Mendoza, desde 1.2)', () => {
   const servicios = crearServicios();
-  assert.equal(servicios.Session.getScriptTimeZone(), 'UTC');
+  assert.equal(servicios.Session.getScriptTimeZone(), 'America/Argentina/Mendoza');
 
   const serviciosConPlanilla = crearServicios({ TEST: {} });
-  assert.equal(serviciosConPlanilla.SpreadsheetApp.openById('TEST').getSpreadsheetTimeZone(), 'UTC');
+  assert.equal(serviciosConPlanilla.SpreadsheetApp.openById('TEST').getSpreadsheetTimeZone(), 'America/Argentina/Mendoza');
 });
 
 for (const zona of ['UTC', 'America/Argentina/Mendoza']) {
