@@ -45,6 +45,7 @@ Cada prueba que reproduce un bug lleva el código del hallazgo en el nombre
 | `d1_servicios.test.js` | División de los servicios (D1, #18) |
 | `d3_transferencias.test.js` | Transferencias (D3, #19) |
 | `navegacion.test.js` | Secciones de la app y link a la planilla |
+| `formularios.test.js` | Los cinco formularios que guardan: validación, éxito y error |
 
 Las pruebas del cliente simulan el navegador: no reemplazan probar en el
 teléfono.
