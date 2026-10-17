@@ -12,8 +12,11 @@ var HOJA_PAGOS_SERV = 'Pagos servicios';
 var HOJA_LISTAS = 'Listas';
 var HOJA_RESUMEN = 'Resumen';
 var HOJA_INGRESOS = 'Ingresos';
+var HOJA_TRANSFERENCIAS = 'Transferencias';
 
 var CLAVE_PERSONAL = 'ID_PLANILLA_PERSONAL';
+
+var DIVISIONES = ['50/50', 'Solo Marcos', 'Solo Flor'];
 
 var CONCEPTOS_INGRESO = ['Sueldo', 'Venta', 'Reintegro', 'Regalo', 'Ajuste', 'Otro'];
 
@@ -475,18 +478,23 @@ function escribirServicio_(d) {
   var monto = aNumero(d.monto);
   if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
 
+  // Sin division, 50/50: el panel lateral no la manda (D1, #18).
+  var division = d.division || '50/50';
+  if (DIVISIONES.indexOf(division) === -1) throw new Error('División invalida: "' + division + '".');
+
   var hoja = planilla().getSheetByName(HOJA_PAGOS_SERV);
   var fila = ultimaFilaReal(hoja) + 1;
 
   var link = guardarComprobante(d.comprobante, d.servicio + ' ' + d.mes, d.fecha);
 
-  hoja.getRange(fila, 1, 1, 5).setValues([[
-    aFecha(d.fecha), d.servicio, d.mes, monto, d.pagadoPor
+  // F (comprobante) va vacia; el link se pone despues.
+  hoja.getRange(fila, 1, 1, 7).setValues([[
+    aFecha(d.fecha), d.servicio, d.mes, monto, d.pagadoPor, '', division
   ]]);
 
   SpreadsheetApp.flush();
   if (Number(hoja.getRange(fila, 4).getValue()) !== monto) {
-    deshacerFila(hoja, fila, 5, 'El pago');
+    deshacerFila(hoja, fila, 7, 'El pago');
   }
 
   var avisoLink = '';
@@ -501,6 +509,37 @@ function escribirServicio_(d) {
 
   return d.servicio + ' de ' + d.mes + ': ' + comoPlata(monto) +
          ' (pagó ' + d.pagadoPor + ')' + avisoLink;
+}
+
+
+/**
+ * Registra una transferencia entre los dos (D3, #19). Solo la anota: no
+ * calcula quien le debe a quien. Son dos personas, asi que "para" es el otro.
+ */
+function guardarTransferencia(d) {
+  return unaVez(d, escribirTransferencia_);
+}
+
+function escribirTransferencia_(d) {
+  if (d.de !== 'Marcos' && d.de !== 'Flor') throw new Error('La transferencia la hace Marcos o Flor.');
+  var para = d.de === 'Marcos' ? 'Flor' : 'Marcos';
+  var monto = aNumero(d.monto);
+  if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
+
+  var hoja = planilla().getSheetByName(HOJA_TRANSFERENCIAS);
+  if (!hoja) throw new Error('No encontré la hoja "' + HOJA_TRANSFERENCIAS + '".');
+  var fila = ultimaFilaReal(hoja) + 1;
+
+  hoja.getRange(fila, 1, 1, 5).setValues([[
+    aFecha(d.fecha), d.de, para, monto, d.descripcion || ''
+  ]]);
+
+  SpreadsheetApp.flush();
+  if (Number(hoja.getRange(fila, 4).getValue()) !== monto) {
+    deshacerFila(hoja, fila, 5, 'La transferencia');
+  }
+
+  return 'Transferencia cargada: ' + d.de + ' a ' + para + ' ' + comoPlata(monto);
 }
 
 

@@ -36,9 +36,14 @@ El script está vinculado a la planilla, así que hay dos "producciones":
   personalizadas (`iclAcumulado`, ...) y los disparadores. **`clasp push`
   cambia HEAD al instante.**
 - **Web app (celular)**: la implementación `AKfycby7a82T...` fijada en la
-  versión 7 (v12, desde el 16/10/2026). No cambia con `clasp push`; solo con
+  versión 10 (v13, desde el 16/10/2026). No cambia con `clasp push`; solo con
   `clasp version` + `clasp deploy -i <id> -V <versión>`. Para volver atrás:
-  redesplegar con `-V 6` (v9 + Web_v8).
+  `-V 9` (v12 + zona Mendoza). `clasp push` se saltea los cambios del
+  manifiesto sin avisar: con `appsscript.json` modificado, `clasp push --force`.
+- **La zona del script viaja en el manifiesto de cada versión.** Script y
+  planilla tienen que estar en la misma zona (`America/Argentina/Mendoza`
+  desde 1.2, #5); si no, cada fecha nueva se corre un día. Las versiones 6 a 8
+  están en UTC: volver a ellas exige poner la planilla otra vez en UTC.
 - **Se prueba antes en el `/dev` de la implementación @HEAD**,
   `https://script.google.com/macros/s/AKfycbxyTuOSm3xrcuylSuGpA10zp9Eiyknjts5altwLKuo/dev`.
   El `/dev` de la implementación del celular (`AKfycby7a82T.../dev`) sirve la
@@ -79,8 +84,8 @@ pasan siempre. En `develop`, `node --test 'pruebas/*.test.js'` tiene que salir
 en verde. La tabla
 de archivos está en `README.md`.
 
-La planilla falsa usa la zona `UTC` por defecto, como producción hoy
-(`crearServicios(planillas, { zona })`). Una prueba que cambia la zona tiene
+La planilla falsa usa la zona `America/Argentina/Mendoza` por defecto, como
+producción desde 1.2 (#5) (`crearServicios(planillas, { zona })`). Una prueba que cambia la zona tiene
 que poner también `process.env.TZ`: `new Date(a, m, d)` se arma en la zona del
 proceso en Node y en la del script en Apps Script.
 
