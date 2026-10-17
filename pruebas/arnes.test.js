@@ -55,12 +55,6 @@ test('6. cargarHtml(\'Web.html\'): expone fechaDe y enviarGasto como funciones; 
   assert.equal(typeof llamada.exito, 'function');
 });
 
-test('7. cargarHtml(\'Panel.html\') carga sin lanzar', () => {
-  assert.doesNotThrow(() => {
-    cargarHtml('Panel.html');
-  });
-});
-
 test('8. Runner: crearRunner() encadenado registra nombre, args y los dos handlers como se describe arriba', () => {
   const runner = crearRunner();
   const handlerExito = () => {};

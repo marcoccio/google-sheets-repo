@@ -18,7 +18,7 @@ tocar código o datos. Este archivo no lo repite.
 - `apps-script/` es el espejo del proyecto desplegado y el `rootDir` de
   `.clasp.json` (ahí está el Script ID). Su primer commit es el código bajado
   sin modificar. Los nombres de archivo tienen que quedar planos e iguales a
-  los del proyecto (`Código.js`, `Web.html`, `Panel.html`): una subcarpeta
+  los del proyecto (`Código.js`, `Web.html`, `Indices.js`): una subcarpeta
   cambia el nombre remoto y rompe `createHtmlOutputFromFile('Web')`.
 - `referencia/` guarda las versiones numeradas que entregó Claude Desktop
   (`Codigo_v9.gs`, `Codigo_v11.gs`, `Web_v8.html`, `Web_v9.html`,
@@ -32,8 +32,9 @@ tocar código o datos. Este archivo no lo repite.
 
 El script está vinculado a la planilla, así que hay dos "producciones":
 
-- **HEAD**: lo que corre el menú y el `Panel.html` de la planilla, las funciones
-  personalizadas (`iclAcumulado`, ...) y los disparadores. **`clasp push`
+- **HEAD**: lo que corren las funciones personalizadas de la planilla
+  (`iclAcumulado`, ...). El panel lateral y su menú se sacaron el 17/10/2026:
+  desde la PC se usa la web app. **`clasp push`
   cambia HEAD al instante.**
 - **Web app (celular)**: la implementación `AKfycby7a82T...` fijada en la
   versión 10 (v13, desde el 16/10/2026). No cambia con `clasp push`; solo con
@@ -109,8 +110,7 @@ abrir un desplegable ni un calendario por código (#59, #60).
   `idEnvio` mientras el envío no tenga una respuesta **exitosa** y el
   contenido (sin el adjunto) sea el mismo. No hay borrador ni recarga (se
   sacaron en #69): con dos cortes seguidos la app pide cerrarla y volver a
-  abrirla. Todo formulario de la web app que escriba pasa por `llamar()`
-  (el panel lateral no: corre en la PC, ver #46). El lock espera 10 s, antes
+  abrirla. Todo formulario de la web app que escriba pasa por `llamar()`. El lock espera 10 s, antes
   del corte de 15 s del cliente (#70).
 - Montos: `aNumero` aplica la regla argentina (`"15.250"` = quince mil
   doscientos cincuenta). Es acordado, no es bug.

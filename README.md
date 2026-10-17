@@ -37,7 +37,6 @@ Cada prueba que reproduce un bug lleva el código del hallazgo en el nombre
 | `indices.test.js` | ICL en la API v4, fechas en la zona de la planilla (#47) |
 | `icl_falso_positivo.test.js` | El ICL no se confunde con "ciclo" (#47) |
 | `conciliacion.test.js` | Ajuste por `llamar()` con idEnvio (#45) |
-| `panel.test.js` | Panel lateral: servicio con fecha y quién pagó (#46) |
 | `enter.test.js` | Enter en el monto (#59) |
 | `fecha_calendario.test.js` | El campo de fecha abre el calendario (#60) |
 | `comprobante.test.js` | Fecha en el nombre del comprobante (#61) |

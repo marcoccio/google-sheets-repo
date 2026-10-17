@@ -1,7 +1,5 @@
 /**
- * Gastos depto - Marcos y Flor
- * v7: comprobantes, servicios que puede pagar cualquiera,
- *     y planilla de finanzas personales creada desde cero.
+ * Gastos depto - Marcos y Flor. Servidor de la web app (Web.html).
  */
 
 var ID_PLANILLA = '1Q0cVQKTsfpsR3cZ7_OCCpGE2ur23AAbbTKXZhXys9Ag';
@@ -67,20 +65,6 @@ function doGet() {
     .setTitle('Gastos depto')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('Carga rápida')
-    .addItem('Abrir panel', 'mostrarPanel')
-    .addToUi();
-}
-
-
-function mostrarPanel() {
-  var html = HtmlService.createHtmlOutputFromFile('Panel').setTitle('Cargar gasto');
-  SpreadsheetApp.getUi().showSidebar(html);
 }
 
 
@@ -478,7 +462,7 @@ function escribirServicio_(d) {
   var monto = aNumero(d.monto);
   if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
 
-  // Sin division, 50/50: el panel lateral no la manda (D1, #18).
+  // Sin division, 50/50 (D1, #18).
   var division = d.division || '50/50';
   if (DIVISIONES.indexOf(division) === -1) throw new Error('División invalida: "' + division + '".');
 
@@ -650,9 +634,11 @@ function armarHojaMovimientos(hoja, secciones, ano) {
 
   var r = 4;
   var filasSubtotal = [];
+  var filasSeccion = [];
 
   secciones.forEach(function (sec) {
     filas.push([sec[0]].concat(new Array(13).fill('')));
+    filasSeccion.push(r);
     r++;
     var inicio = r;
 
@@ -706,10 +692,8 @@ function armarHojaMovimientos(hoja, secciones, ano) {
   hoja.setFrozenColumns(1);
 
   // Marca las filas de seccion.
-  var fr = 4;
-  secciones.forEach(function (sec) {
-    hoja.getRange(fr, 1, 1, 14).setBackground('#f3ebe5').setFontWeight('bold');
-    fr += sec[1].length + 3;
+  filasSeccion.forEach(function (fs) {
+    hoja.getRange(fs, 1, 1, 14).setBackground('#f3ebe5').setFontWeight('bold');
   });
 }
 
@@ -856,11 +840,6 @@ function armarAuxPersonal(ss) {
 
 
 /**
- * Trae cotizaciones e inflacion y las escribe en la planilla personal.
- * Reemplaza a las funciones personalizadas: como la planilla se crea
- * por codigo, no tiene un script propio adonde vivirian.
- */
-/**
  * Solo actualiza si el dato tiene mas de 12 horas.
  * Asi entrar a la pestana Personal no espera a las APIs cada vez.
  */
@@ -881,6 +860,11 @@ function actualizarDatosMercadoSiHaceFalta() {
 }
 
 
+/**
+ * Trae cotizaciones e inflacion y las escribe en la planilla personal.
+ * Reemplaza a las funciones personalizadas: como la planilla se crea
+ * por codigo, no tiene un script propio adonde vivirian.
+ */
 function actualizarDatosMercado() {
   var ss = planillaPersonal();
   var aux = ss.getSheetByName('Aux');
@@ -1165,9 +1149,3 @@ function registrarAjuste(d) {
     monto: Math.abs(monto)
   });
 }
-
-/**
- * Nota: el recordatorio por mail se eliminó en esta versión.
- * Si quedaron disparadores creados por versiones anteriores, hay que
- * borrarlos a mano en script.google.com/home/triggers, con cada cuenta.
- */

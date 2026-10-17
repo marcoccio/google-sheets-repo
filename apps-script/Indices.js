@@ -1,9 +1,6 @@
 /**
  * Indices para la actualizacion del alquiler.
  * Se agregan al proyecto de la planilla "Gastos depto".
- *
- * Requiere que tambien este cargado finanzas.gs (la libreria
- * google-sheets-argento), porque usa su funcion bcraVariables().
  */
 
 
