@@ -71,3 +71,27 @@ test('#45: si se corta la espera, el reintento del ajuste reusa idEnvio', () => 
   assert.equal(envios.length, 2);
   assert.equal(envios[1].args[0].idEnvio, envios[0].args[0].idEnvio);
 });
+
+test('CONTROL: conciliar del depto suma gastos y servicios del rango, e ingresos aparte', () => {
+  const base = cargarServidor();
+  const servicios = crearServicios({
+    [base.ID_PLANILLA]: {
+      [base.HOJA_GASTOS]: [['Fecha', 'Cat', 'Det', 'Desc', 'Monto']],
+      [base.HOJA_PAGOS_SERV]: [['Fecha', 'Servicio', 'Mes', 'Monto']],
+      [base.HOJA_INGRESOS]: [['Fecha', 'Concepto', 'Monto']]
+    }
+  });
+  const ctx = cargarServidor(['Código.js'], servicios);
+  // Las fechas se arman adentro del contexto: conciliar compara con instanceof Date.
+  const f = ctx.aFecha;
+  servicios.hoja(base.ID_PLANILLA, base.HOJA_GASTOS).push(
+    [f('2026-10-01'), '', '', '', 1000], [f('2026-10-31'), '', '', '', 2000], [f('2026-11-01'), '', '', '', 9999], ['', '', '', '', 5]);
+  servicios.hoja(base.ID_PLANILLA, base.HOJA_PAGOS_SERV).push(
+    [f('2026-10-15'), 'Internet', 'Octubre', 300], [f('2026-09-30'), 'Internet', 'Septiembre', 7777]);
+  servicios.hoja(base.ID_PLANILLA, base.HOJA_INGRESOS).push([f('2026-10-20'), 'Sueldo', 500]);
+
+  const r = ctx.conciliar({ destino: 'depto', desde: '2026-10-01', hasta: '2026-10-31', montoReal: '3300' });
+  assert.equal(r.gastos, ctx.comoPlata(3300));
+  assert.equal(r.ingresos, ctx.comoPlata(500));
+  assert.equal(r.hayDiferencia, false);
+});
