@@ -55,6 +55,7 @@ Hojas de la compartida (sheetId):
 | Ingresos | 1657384976 | Vacía |
 | Alquiler | 1548067557 | Proyección IPC/ICL |
 | Pagos servicios | 1039886389 | Un pago por fila, con quién pagó |
+| Transferencias | 1569968795 | Creada el 16/10/2026 (D3, #19): Fecha, De, Para, Monto, Descripción. Solo registro, sin cálculo de deudas |
 | Tarjetas | 1409396207 | Vacía, para la Fase 4 |
 | Compras en cuotas | 773169151 | Vacía, para la Fase 4 |
 
