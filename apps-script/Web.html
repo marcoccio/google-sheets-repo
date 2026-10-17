@@ -78,13 +78,6 @@
 
   .acumulado { display: flex; gap: 9px; }
 
-  .acumulado div {
-    flex: 1;
-    background: rgba(255,255,255,.13);
-    border-radius: 10px;
-    padding: 11px 12px;
-  }
-
   .acumulado span {
     display: block;
     font-size: 11px;
@@ -835,6 +828,11 @@
 <script>
   var OPC = null;
   var TIPO_PERSONAL = 'Gastos';
+  var ETIQUETAS_PERSONAL = {
+    Gastos: 'Guardar gasto personal',
+    Ingresos: 'Guardar ingreso personal',
+    Ahorros: 'Guardar ahorro'
+  };
   var SECCION = 'depto';
   var PERSONAL_CARGADO = false;
   var YO = 'Marcos';
@@ -923,12 +921,6 @@
 
   function llenar(id, valores) {
     var sel = document.getElementById(id);
-    // Solo se escriben opciones en un <select>. Evita que un id repetido
-    // haga que las opciones terminen dentro de otro elemento.
-    if (!sel || sel.tagName !== 'SELECT') {
-      console.warn('llenar(): "' + id + '" no es un select.');
-      return;
-    }
     sel.innerHTML = '';
     (valores || []).forEach(function (v) {
       var o = document.createElement('option');
@@ -1048,12 +1040,7 @@
 
     if (OPC && OPC.personales) llenar('categoriaPersonal', OPC.personales[hoja]);
 
-    var etiquetas = {
-      Gastos: 'Guardar gasto personal',
-      Ingresos: 'Guardar ingreso personal',
-      Ahorros: 'Guardar ahorro'
-    };
-    document.getElementById('btnPersonal').textContent = etiquetas[hoja];
+    document.getElementById('btnPersonal').textContent = ETIQUETAS_PERSONAL[hoja];
     limpiarAviso();
   }
 
@@ -1086,9 +1073,7 @@
 
   function limpiarAdjunto(idInput, idLabel) {
     document.getElementById(idInput).value = '';
-    var lbl = document.getElementById(idLabel);
-    lbl.querySelector('span').textContent = 'Tocá para adjuntar foto o PDF';
-    lbl.classList.remove('cargado');
+    marcarAdjunto(idInput, idLabel);
   }
 
   /** Lee el archivo y devuelve una promesa con {nombre, tipo, datos}. */
@@ -1427,12 +1412,7 @@
     var monto = document.getElementById('montoPersonal').value;
     if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
 
-    var etiquetas = {
-      Gastos: 'Guardar gasto personal',
-      Ingresos: 'Guardar ingreso personal',
-      Ahorros: 'Guardar ahorro'
-    };
-    var texto = etiquetas[TIPO_PERSONAL];
+    var texto = ETIQUETAS_PERSONAL[TIPO_PERSONAL];
     ocupado('btnPersonal', 'Guardando...');
 
     llamar('guardarMovimientoPersonal',

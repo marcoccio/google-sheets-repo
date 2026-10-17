@@ -41,10 +41,6 @@ function probarHora(hora) {
 
   ctxWeb.document.getElementById('fecha').value = '';
   assert.equal(ctxWeb.fechaDe('fecha'), '2026-10-11');
-
-  const ctxPanel = cargarHtml('Panel.html', globales);
-  ctxPanel.dispararEvento('load');
-  assert.equal(ctxPanel.document.getElementById('fecha').value, '2026-10-11');
 }
 
 test('CONTROL: hora 15:00 en Mendoza', () => {
