@@ -8,7 +8,7 @@ de las tablas de etapas es un issue de GitHub.
 
 | | |
 |---|---|
-| Instalado | **v13** en el celular (versión 10) y en HEAD; tag `v13` en `main` |
+| Instalado | **v13.1** en el celular (versión 11) y en HEAD (17/10): limpieza post v13 con ponytail (#87, #90, #91) y sin panel lateral |
 | Hechas | Etapas 0, 1 (salvo 1.3 y 1.4), 2 (v12) y 3 (v13: 1.2, 3.1, 3.2) |
 | Pendiente de datos | 1.3 (#6, fecha 1970) y 1.4 (#7, alquiler de septiembre): Marcos los corrige después de las mejoras |
 | Descartado | 3.4 (#49) |
