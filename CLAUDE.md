@@ -95,7 +95,7 @@ abrir un desplegable ni un calendario por código (#59, #60).
 ## Arquitectura (lo que cruza archivos)
 
 - Web app publicada como *Ejecutar como: usuario que accede*: cada uno escribe
-  con su propia cuenta. Por eso la migración de la personal (Fase 3) tiene que
+  con su propia cuenta. Por eso la migración de la personal (Etapa 4) tiene que
   ser un botón dentro de la app, no un script con la cuenta de servicio del MCP.
 - Planilla compartida: muchas hojas son **calculadas** (Servicios = SUMIFS
   desde Pagos servicios; Gastos diarios = QUERY; H/I de Gastos con
@@ -107,9 +107,11 @@ abrir un desplegable ni un calendario por código (#59, #60).
   CacheService, chequeado y grabado dentro del mismo lock. La clave se graba
   solo si el guardado terminó bien. El cliente (`llamar()`) reusa el
   `idEnvio` mientras el envío no tenga una respuesta **exitosa** y el
-  contenido (sin el adjunto) sea el mismo; los envíos pendientes viajan en el
-  borrador. Todo formulario de la web app que escriba pasa por `llamar()`
-  (el panel lateral no: corre en la PC, ver #46).
+  contenido (sin el adjunto) sea el mismo. No hay borrador ni recarga (se
+  sacaron en #69): con dos cortes seguidos la app pide cerrarla y volver a
+  abrirla. Todo formulario de la web app que escriba pasa por `llamar()`
+  (el panel lateral no: corre en la PC, ver #46). El lock espera 10 s, antes
+  del corte de 15 s del cliente (#70).
 - Montos: `aNumero` aplica la regla argentina (`"15.250"` = quince mil
   doscientos cincuenta). Es acordado, no es bug.
 
@@ -123,5 +125,3 @@ abrir un desplegable ni un calendario por código (#59, #60).
   Para desarrollar la migración, usar la copia de Marcos.
 - Nunca guardar números de tarjeta (alcanza con nombre, empresa, banco, cierre
   y vencimiento).
-- `Codigo_v11.gs` + `Web_v9.html` (Fase 1) **no se instalan tal cual**: van
-  como v12 con los arreglos.
