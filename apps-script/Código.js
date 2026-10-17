@@ -15,6 +15,8 @@ var HOJA_INGRESOS = 'Ingresos';
 
 var CLAVE_PERSONAL = 'ID_PLANILLA_PERSONAL';
 
+var DIVISIONES = ['50/50', 'Solo Marcos', 'Solo Flor'];
+
 var CONCEPTOS_INGRESO = ['Sueldo', 'Venta', 'Reintegro', 'Regalo', 'Ajuste', 'Otro'];
 
 var MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -475,18 +477,23 @@ function escribirServicio_(d) {
   var monto = aNumero(d.monto);
   if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
 
+  // Sin division, 50/50: el panel lateral no la manda (D1, #18).
+  var division = d.division || '50/50';
+  if (DIVISIONES.indexOf(division) === -1) throw new Error('División invalida: "' + division + '".');
+
   var hoja = planilla().getSheetByName(HOJA_PAGOS_SERV);
   var fila = ultimaFilaReal(hoja) + 1;
 
   var link = guardarComprobante(d.comprobante, d.servicio + ' ' + d.mes, d.fecha);
 
-  hoja.getRange(fila, 1, 1, 5).setValues([[
-    aFecha(d.fecha), d.servicio, d.mes, monto, d.pagadoPor
+  // F (comprobante) va vacia; el link se pone despues.
+  hoja.getRange(fila, 1, 1, 7).setValues([[
+    aFecha(d.fecha), d.servicio, d.mes, monto, d.pagadoPor, '', division
   ]]);
 
   SpreadsheetApp.flush();
   if (Number(hoja.getRange(fila, 4).getValue()) !== monto) {
-    deshacerFila(hoja, fila, 5, 'El pago');
+    deshacerFila(hoja, fila, 7, 'El pago');
   }
 
   var avisoLink = '';
