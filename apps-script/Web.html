@@ -855,11 +855,6 @@
     document.getElementById('desde').value = fechaLocal(hace30);
 
     google.script.run.withSuccessHandler(iniciar).obtenerOpciones();
-    google.script.run
-      .withSuccessHandler(function (url) {
-        document.getElementById('verPlanilla').href = url;
-      })
-      .urlPlanilla();
 
     conectarEnter('monto');
     conectarEnter('montoServicio');
@@ -874,6 +869,7 @@
 
   function iniciar(datos) {
     OPC = datos;
+    document.getElementById('verPlanilla').href = datos.url;
 
     if (datos.yo) {
       YO = datos.yo.nombre;
@@ -1001,18 +997,14 @@
       document.getElementById(b).classList.remove('activo');
     });
 
-    if (cual === 'depto') {
-      document.getElementById('zonaDepto').classList.remove('oculto');
-      document.getElementById('destDepto').classList.add('activo');
-    } else if (cual === 'personal') {
-      document.getElementById('zonaPersonal').classList.remove('oculto');
-      document.getElementById('destPersonal').classList.add('activo');
+    var nombre = cual.charAt(0).toUpperCase() + cual.slice(1);
+    document.getElementById('zona' + nombre).classList.remove('oculto');
+    var boton = document.getElementById('dest' + nombre);
+    if (boton) boton.classList.add('activo');
+
+    if (cual === 'personal') {
       revisarPersonal();
-    } else if (cual === 'conciliar') {
-      document.getElementById('zonaConciliar').classList.remove('oculto');
-      document.getElementById('destConciliar').classList.add('activo');
-    } else {
-      document.getElementById('zonaAjustes').classList.remove('oculto');
+    } else if (cual === 'ajustes') {
       if (OPC && OPC.yo) {
         document.getElementById('ajMail').textContent = OPC.yo.mail || '-';
         document.getElementById('ajNombre').textContent = YO;

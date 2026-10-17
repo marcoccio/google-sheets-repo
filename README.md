@@ -44,6 +44,7 @@ Cada prueba que reproduce un bug lleva el código del hallazgo en el nombre
 | `limpieza_71.test.js` | Acumulado y negativos (#71) |
 | `d1_servicios.test.js` | División de los servicios (D1, #18) |
 | `d3_transferencias.test.js` | Transferencias (D3, #19) |
+| `navegacion.test.js` | Secciones de la app y link a la planilla |
 
 Las pruebas del cliente simulan el navegador: no reemplazan probar en el
 teléfono.

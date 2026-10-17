@@ -305,13 +305,9 @@ function obtenerOpciones() {
     meses: meses,
     personales: personales,
     conceptosIngreso: CONCEPTOS_INGRESO,
-    yo: miNombre()
+    yo: miNombre(),
+    url: ss.getUrl()
   };
-}
-
-
-function urlPlanilla() {
-  return planilla().getUrl();
 }
 
 
@@ -1026,29 +1022,18 @@ function conciliar(d) {
   var gastos = 0, ingresos = 0;
 
   if (d.destino === 'depto') {
-    var hg = planilla().getSheetByName(HOJA_GASTOS);
-    var dg = hg.getRange('A2:E2000').getValues();
-    for (var i = 0; i < dg.length; i++) {
-      if (dg[i][0] instanceof Date && dg[i][0] >= desde && dg[i][0] <= hasta) {
-        if (typeof dg[i][4] === 'number') gastos += dg[i][4];
-      }
-    }
-
-    var hs = planilla().getSheetByName(HOJA_PAGOS_SERV);
-    var ds = hs.getRange('A2:D2000').getValues();
-    for (var s = 0; s < ds.length; s++) {
-      if (ds[s][0] instanceof Date && ds[s][0] >= desde && ds[s][0] <= hasta) {
-        if (typeof ds[s][3] === 'number') gastos += ds[s][3];
-      }
-    }
-
-    var hi = planilla().getSheetByName(HOJA_INGRESOS);
-    var di = hi.getRange('A2:C2000').getValues();
-    for (var j = 0; j < di.length; j++) {
-      if (di[j][0] instanceof Date && di[j][0] >= desde && di[j][0] <= hasta) {
-        if (typeof di[j][2] === 'number') ingresos += di[j][2];
-      }
-    }
+    // Suma la columna del monto de las filas con fecha en el rango.
+    var sumarEntre = function (nombreHoja, rango, colMonto) {
+      var total = 0;
+      planilla().getSheetByName(nombreHoja).getRange(rango).getValues().forEach(function (f) {
+        if (f[0] instanceof Date && f[0] >= desde && f[0] <= hasta && typeof f[colMonto] === 'number') {
+          total += f[colMonto];
+        }
+      });
+      return total;
+    };
+    gastos = sumarEntre(HOJA_GASTOS, 'A2:E2000', 4) + sumarEntre(HOJA_PAGOS_SERV, 'A2:D2000', 3);
+    ingresos = sumarEntre(HOJA_INGRESOS, 'A2:C2000', 2);
   } else {
     // Personal: se compara por mes completo, que es la unidad de la grilla.
     var ssp = planillaPersonal();
