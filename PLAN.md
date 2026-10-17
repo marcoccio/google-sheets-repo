@@ -34,7 +34,10 @@ de las tablas de etapas es un issue de GitHub.
   ramas `dev/...` a la vez); las ramas son `dev/<categoría>/<módulo>/<issue>-<descripción>`;
   los PR van a `develop` por squash, con título `Tipo(scope): descripción`. El
   merge `develop` → `main` se hace al instalar, con tag `vNN` (v12, v13...), que
-  sigue la numeración que ya traían los archivos.
+  sigue la numeración que ya traían los archivos. **El release a `main` va
+  siempre con merge commit** (`gh pr merge N --merge`), nunca squash: un squash
+  le saca a `main` la historia de `develop` y el release siguiente da
+  conflicto (pasó con v13, #85; se arregló en #94).
 - **Labels**: `type:fix`, `type:feat`, `type:refactor`, `type:chore`, `type:test`,
   `type:docs`; `etapa:0` a `etapa:5`; `ejecuta:claude`, `ejecuta:gemini`,
   `ejecuta:marcos`; `toca-produccion` (necesita confirmación de Marcos antes de
