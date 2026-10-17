@@ -12,6 +12,7 @@ var HOJA_PAGOS_SERV = 'Pagos servicios';
 var HOJA_LISTAS = 'Listas';
 var HOJA_RESUMEN = 'Resumen';
 var HOJA_INGRESOS = 'Ingresos';
+var HOJA_TRANSFERENCIAS = 'Transferencias';
 
 var CLAVE_PERSONAL = 'ID_PLANILLA_PERSONAL';
 
@@ -501,6 +502,37 @@ function escribirServicio_(d) {
 
   return d.servicio + ' de ' + d.mes + ': ' + comoPlata(monto) +
          ' (pagó ' + d.pagadoPor + ')' + avisoLink;
+}
+
+
+/**
+ * Registra una transferencia entre los dos (D3, #19). Solo la anota: no
+ * calcula quien le debe a quien. Son dos personas, asi que "para" es el otro.
+ */
+function guardarTransferencia(d) {
+  return unaVez(d, escribirTransferencia_);
+}
+
+function escribirTransferencia_(d) {
+  if (d.de !== 'Marcos' && d.de !== 'Flor') throw new Error('La transferencia la hace Marcos o Flor.');
+  var para = d.de === 'Marcos' ? 'Flor' : 'Marcos';
+  var monto = aNumero(d.monto);
+  if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
+
+  var hoja = planilla().getSheetByName(HOJA_TRANSFERENCIAS);
+  if (!hoja) throw new Error('No encontré la hoja "' + HOJA_TRANSFERENCIAS + '".');
+  var fila = ultimaFilaReal(hoja) + 1;
+
+  hoja.getRange(fila, 1, 1, 5).setValues([[
+    aFecha(d.fecha), d.de, para, monto, d.descripcion || ''
+  ]]);
+
+  SpreadsheetApp.flush();
+  if (Number(hoja.getRange(fila, 4).getValue()) !== monto) {
+    deshacerFila(hoja, fila, 5, 'La transferencia');
+  }
+
+  return 'Transferencia cargada: ' + d.de + ' a ' + para + ' ' + comoPlata(monto);
 }
 
 
