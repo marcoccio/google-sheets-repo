@@ -27,6 +27,7 @@ Cada prueba que reproduce un bug lleva el código del hallazgo en el nombre
 | `c1_servidor.test.js` | C1 del lado del servidor |
 | `cliente_watchdog.test.js` | C1 del lado del cliente, M2, H3 |
 | `indices.test.js` | D-c (ICL en la API v4) |
+| `zona_1_2.test.js` | 1.2: el manifiesto en `America/Argentina/Mendoza` |
 
 Las pruebas del cliente simulan el navegador: no reemplazan probar en el
 teléfono.
