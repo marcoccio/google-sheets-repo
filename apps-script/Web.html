@@ -589,6 +589,15 @@
       </div>
 
       <div class="campo">
+        <label for="divisionServicio">Se divide</label>
+        <select id="divisionServicio">
+          <option>50/50</option>
+          <option>Solo Marcos</option>
+          <option>Solo Flor</option>
+        </select>
+      </div>
+
+      <div class="campo">
         <label for="fechaServicio">Fecha de pago</label>
         <input type="date" id="fechaServicio">
       </div>
@@ -1247,6 +1256,7 @@
           mes: document.getElementById('mes').value,
           monto: monto,
           pagadoPor: document.getElementById('pagoServicio').value,
+          division: document.getElementById('divisionServicio').value,
           comprobante: comp
         },
         function (msg) {

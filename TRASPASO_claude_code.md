@@ -48,13 +48,13 @@ Hojas de la compartida (sheetId):
 | Hoja | sheetId | Nota |
 |---|---|---|
 | Gastos | 0 | Una fila por gasto. H/I con ARRAYFORMULA |
-| Servicios | 1383057097 | **Grilla calculada** con SUMIFS desde Pagos servicios. No escribir encima |
+| Servicios | 1383057097 | **Grilla calculada** con SUMIFS desde Pagos servicios. No escribir encima. Filas 14/15 Parte Marcos / Parte Flor (D1) |
 | Resumen | 1415306215 | El código lo lee **por etiqueta**, no por número de fila |
 | Gastos diarios | 858890175 | Vista QUERY, no se escribe |
 | Listas | 367536799 | Oculta. Rangos con nombre para los desplegables |
 | Ingresos | 1657384976 | Vacía |
 | Alquiler | 1548067557 | Proyección IPC/ICL |
-| Pagos servicios | 1039886389 | Un pago por fila, con quién pagó |
+| Pagos servicios | 1039886389 | Un pago por fila, con quién pagó. Desde el 16/10/2026 (D1, #18): G División (vacía = 50/50), H/I Parte Marcos / Parte Flor con ARRAYFORMULA |
 | Tarjetas | 1409396207 | Vacía, para la Fase 4 |
 | Compras en cuotas | 773169151 | Vacía, para la Fase 4 |
 
