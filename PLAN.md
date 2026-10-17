@@ -129,7 +129,7 @@ Drive. Decisión de Marcos del 16/10; queda para después de v12.
 | 3.1 | **D1**: columna División en Pagos servicios (los pagos existentes pasan a "50/50"); filas Parte Marcos / Parte Flor en Servicios (D2 ya está en Web_v9) | feat | claude | 2.10 | Marcos aprueba el cambio de estructura antes de aplicarlo; totales de control iguales |
 | 3.2 | **D3**: hoja Transferencias (fecha, de, para, monto, descripción) y formulario en la app. **Sin** cálculo de quién le debe a quién | feat | claude (servidor) + gemini (formulario) | 2.10 | Prueba de `guardarTransferencia` con idempotencia (reusa 2.4) |
 | 3.5 | Aviso cuando los dos cargan la misma compra (mismo monto, fecha y categoría, otra persona) | feat | claude | 2.10 | Avisa y deja confirmar. **Congelado** (fuera de v13) |
-| 3.3 | Instalar v13 | chore | marcos + claude | 1.2, 3.1, 3.2, 1.3, 1.4 | Igual que 2.10, con una transferencia en la prueba de `/dev`. `toca-produccion` |
+| 3.3 | Instalar v13 | chore | marcos + claude | 1.2, 3.1, 3.2 | Igual que 2.10, con una transferencia en la prueba de `/dev`. `toca-produccion`. **Instalado el 16/10/2026** (versión 10). 1.3 y 1.4 (datos) quedaron para después de las mejoras |
 
 **Alcance de v13** (decisión de Marcos, 16/10/2026): 1.2, 3.1 y 3.2, en el
 milestone `v13`. 3.4 (`estadoEnvio`, #49) se **descartó**: con v12 los

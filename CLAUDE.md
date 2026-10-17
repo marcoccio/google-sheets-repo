@@ -36,12 +36,13 @@ El script está vinculado a la planilla, así que hay dos "producciones":
   personalizadas (`iclAcumulado`, ...) y los disparadores. **`clasp push`
   cambia HEAD al instante.**
 - **Web app (celular)**: la implementación `AKfycby7a82T...` fijada en la
-  versión 7 (v12, desde el 16/10/2026). No cambia con `clasp push`; solo con
+  versión 10 (v13, desde el 16/10/2026). No cambia con `clasp push`; solo con
   `clasp version` + `clasp deploy -i <id> -V <versión>`. Para volver atrás:
-  redesplegar con `-V 6` (v9 + Web_v8).
+  `-V 9` (v12 + zona Mendoza). `clasp push` se saltea los cambios del
+  manifiesto sin avisar: con `appsscript.json` modificado, `clasp push --force`.
 - **La zona del script viaja en el manifiesto de cada versión.** Script y
   planilla tienen que estar en la misma zona (`America/Argentina/Mendoza`
-  desde 1.2, #5); si no, cada fecha nueva se corre un día. Las versiones 6 y 7
+  desde 1.2, #5); si no, cada fecha nueva se corre un día. Las versiones 6 a 8
   están en UTC: volver a ellas exige poner la planilla otra vez en UTC.
 - **Se prueba antes en el `/dev` de la implementación @HEAD**,
   `https://script.google.com/macros/s/AKfycbxyTuOSm3xrcuylSuGpA10zp9Eiyknjts5altwLKuo/dev`.
