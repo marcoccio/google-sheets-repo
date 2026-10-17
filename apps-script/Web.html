@@ -511,6 +511,7 @@
       <button id="tabGasto" class="activo" onclick="cambiar('gasto')">Gasto</button>
       <button id="tabServicio" onclick="cambiar('servicio')">Servicio</button>
       <button id="tabIngreso" onclick="cambiar('ingreso')">Ingreso</button>
+      <button id="tabTransferencia" onclick="cambiar('transferencia')" aria-label="Transferencia">Transf.</button>
     </div>
 
     <div class="tarjeta" id="formGasto">
@@ -646,6 +647,31 @@
       </div>
 
       <button class="guardar" id="btnIngreso" onclick="enviarIngreso()">Guardar ingreso</button>
+    </div>
+
+    <div class="tarjeta oculto" id="formTransferencia">
+      <div class="campo plata">
+        <label for="montoTransferencia">Monto</label>
+        <input type="number" id="montoTransferencia" placeholder="0" min="0" step="1" inputmode="numeric">
+      </div>
+
+      <div class="duo">
+        <div class="campo">
+          <label for="deTransferencia">La hizo</label>
+          <select id="deTransferencia"><option>Marcos</option><option>Flor</option></select>
+        </div>
+        <div class="campo">
+          <label for="fechaTransferencia">Fecha</label>
+          <input type="date" id="fechaTransferencia">
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="descripcionTransferencia">Descripción</label>
+        <input type="text" id="descripcionTransferencia" placeholder="Opcional">
+      </div>
+
+      <button class="guardar" id="btnTransferencia" onclick="enviarTransferencia()">Guardar transferencia</button>
     </div>
 
   </div>
@@ -812,7 +838,7 @@
 
   window.addEventListener('load', function () {
     var hoy = fechaLocal(new Date());
-    ['fecha', 'fechaServicio', 'fechaIngreso', 'fechaPersonal', 'hasta'].forEach(function (id) {
+    ['fecha', 'fechaServicio', 'fechaIngreso', 'fechaTransferencia', 'fechaPersonal', 'hasta'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.value = hoy;
     });
@@ -831,6 +857,7 @@
     conectarEnter('monto');
     conectarEnter('montoServicio');
     conectarEnter('montoIngreso');
+    conectarEnter('montoTransferencia');
     conectarEnter('montoPersonal');
 
     history.replaceState({ seccion: 'depto' }, '', '#depto');
@@ -858,7 +885,7 @@
 
   /** Deja seleccionado mi nombre en todos los selectores de persona. */
   function aplicarMiNombre() {
-    ['pagadoPor', 'pagoServicio', 'recibidoPor', 'pagadoAjuste'].forEach(function (id) {
+    ['pagadoPor', 'pagoServicio', 'recibidoPor', 'deTransferencia', 'pagadoAjuste'].forEach(function (id) {
       var sel = document.getElementById(id);
       if (!sel) return;
       for (var i = 0; i < sel.options.length; i++) {
@@ -994,8 +1021,8 @@
   }
 
   function cambiar(cual) {
-    var mapa = { gasto: 'formGasto', servicio: 'formServicio', ingreso: 'formIngreso' };
-    var tabs = { gasto: 'tabGasto', servicio: 'tabServicio', ingreso: 'tabIngreso' };
+    var mapa = { gasto: 'formGasto', servicio: 'formServicio', ingreso: 'formIngreso', transferencia: 'formTransferencia' };
+    var tabs = { gasto: 'tabGasto', servicio: 'tabServicio', ingreso: 'tabIngreso', transferencia: 'tabTransferencia' };
     Object.keys(mapa).forEach(function (k) {
       document.getElementById(mapa[k]).classList.toggle('oculto', k !== cual);
       document.getElementById(tabs[k]).classList.toggle('activo', k === cual);
@@ -1291,6 +1318,33 @@
         },
         fallo);
     }, fallo);
+  }
+
+  function enviarTransferencia() {
+    var monto = document.getElementById('montoTransferencia').value;
+    if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
+
+    ocupado('btnTransferencia', 'Guardando…');
+
+    function fallo(e) {
+      ocupado('btnTransferencia', '', 'Guardar transferencia');
+      mostrar(e.message, 'error');
+    }
+
+    llamar('guardarTransferencia',
+      {
+        fecha: fechaDe('fechaTransferencia'),
+        de: document.getElementById('deTransferencia').value,
+        monto: monto,
+        descripcion: document.getElementById('descripcionTransferencia').value
+      },
+      function (msg) {
+        ocupado('btnTransferencia', '', 'Guardar transferencia');
+        document.getElementById('montoTransferencia').value = '';
+        document.getElementById('descripcionTransferencia').value = '';
+        mostrar(msg, 'ok');
+      },
+      fallo);
   }
 
   /* ---- Personal ---- */
