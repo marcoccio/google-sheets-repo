@@ -11,6 +11,7 @@ var HOJA_LISTAS = 'Listas';
 var HOJA_RESUMEN = 'Resumen';
 var HOJA_INGRESOS = 'Ingresos';
 var HOJA_TRANSFERENCIAS = 'Transferencias';
+var HOJA_MOVIMIENTOS = 'Movimientos';
 
 var CLAVE_PERSONAL = 'ID_PLANILLA_PERSONAL';
 
@@ -577,6 +578,7 @@ function crearPlanillaPersonal() {
 
   armarResumenPersonal(ss, ano);
   armarAuxPersonal(ss);
+  armarMovimientos(ss);
 
   PropertiesService.getUserProperties().setProperty(CLAVE_PERSONAL, ss.getId());
 
@@ -609,7 +611,8 @@ function armarHojaMovimientos(hoja, secciones, ano) {
     var inicio = r;
 
     sec[1].forEach(function (cat) {
-      var fila = [cat].concat(new Array(12).fill(''));
+      var fila = [cat];
+      for (var mc = 2; mc <= 13; mc++) fila.push(formulaCelda(hoja.getName(), r, mc));
       fila.push('=SUM(B' + r + ':M' + r + ')');
       filas.push(fila);
       r++;
@@ -770,6 +773,18 @@ function consultaCategorias(nombreHoja) {
 }
 
 
+/** Hoja Movimientos de la personal (#22): una fila por movimiento. */
+function armarMovimientos(ss) {
+  var hoja = ss.insertSheet(HOJA_MOVIMIENTOS);
+  hoja.getRange(1, 1, 1, 6).setValues([['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto', 'Origen']])
+    .setFontWeight('bold');
+  hoja.setFrozenRows(1);
+  hoja.getRange('A2:A').setNumberFormat('dd/mm/yyyy');
+  hoja.getRange('E2:E').setNumberFormat('$#,##0;-$#,##0');
+  return hoja;
+}
+
+
 function armarAuxPersonal(ss) {
   var hoja = ss.insertSheet('Aux', 4);
 
@@ -922,9 +937,9 @@ function vincularPlanillaPersonal(texto) {
 
 
 /**
- * Guarda un movimiento personal en la grilla de meses.
- * hoja: 'Gastos' | 'Ingresos' | 'Ahorros'
- * Suma al valor que ya haya en esa celda.
+ * Guarda un movimiento personal. hoja: 'Gastos' | 'Ingresos' | 'Ahorros'.
+ * Si la planilla ya tiene Movimientos (#22), agrega una fila y la grilla lo
+ * suma sola; si no (todavia no migro), suma en la celda del mes como antes.
  */
 function guardarMovimientoPersonal(d) {
   return unaVez(d, escribirMovimientoPersonal_);
@@ -949,6 +964,15 @@ function escribirMovimientoPersonal_(d) {
   var monto = aNumero(d.monto);
   if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
 
+  var aviso = d.hoja + ' - ' + d.categoria + ': ' + comoPlata(monto) + ' en ' + MESES[fecha.getMonth()];
+
+  var movimientos = ss.getSheetByName(HOJA_MOVIMIENTOS);
+  if (movimientos) {
+    agregarFila(movimientos, [fecha, d.hoja, d.categoria, d.descripcion || '', monto, 'app'],
+                5, monto, 'El movimiento');
+    return aviso;
+  }
+
   var celda = hoja.getRange(fila, col);
   var previo = celda.getValue();
   var actual = Number(previo) || 0;
@@ -970,8 +994,18 @@ function escribirMovimientoPersonal_(d) {
     }
   }
 
-  return d.hoja + ' - ' + d.categoria + ': ' + comoPlata(monto) +
-         ' en ' + MESES[fecha.getMonth()] + avisoNota;
+  return aviso + avisoNota;
+}
+
+
+/**
+ * Formula de una celda de la grilla personal (#22): suma Movimientos por
+ * tipo, categoria (columna A) y mes. La fila 1 tiene el ultimo dia del mes.
+ */
+function formulaCelda(tipo, fila, col) {
+  var c = String.fromCharCode(64 + col);
+  return '=SUMIFS(Movimientos!$E:$E;Movimientos!$B:$B;"' + tipo + '";Movimientos!$C:$C;$A' + fila +
+         ';Movimientos!$A:$A;">="&(EOMONTH(' + c + '$1;-1)+1);Movimientos!$A:$A;"<"&(' + c + '$1+1))';
 }
 
 
