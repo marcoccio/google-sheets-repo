@@ -18,7 +18,7 @@ tocar código o datos. Este archivo no lo repite.
 - `apps-script/` es el espejo del proyecto desplegado y el `rootDir` de
   `.clasp.json` (ahí está el Script ID). Su primer commit es el código bajado
   sin modificar. Los nombres de archivo tienen que quedar planos e iguales a
-  los del proyecto (`Código.js`, `Web.html`, `Panel.html`): una subcarpeta
+  los del proyecto (`Código.js`, `Web.html`, `Indices.js`): una subcarpeta
   cambia el nombre remoto y rompe `createHtmlOutputFromFile('Web')`.
 - `referencia/` guarda las versiones numeradas que entregó Claude Desktop
   (`Codigo_v9.gs`, `Codigo_v11.gs`, `Web_v8.html`, `Web_v9.html`,
@@ -32,13 +32,14 @@ tocar código o datos. Este archivo no lo repite.
 
 El script está vinculado a la planilla, así que hay dos "producciones":
 
-- **HEAD**: lo que corre el menú y el `Panel.html` de la planilla, las funciones
-  personalizadas (`iclAcumulado`, ...) y los disparadores. **`clasp push`
+- **HEAD**: lo que corren las funciones personalizadas de la planilla
+  (`iclAcumulado`, ...). El panel lateral y su menú se sacaron el 17/10/2026:
+  desde la PC se usa la web app. **`clasp push`
   cambia HEAD al instante.**
 - **Web app (celular)**: la implementación `AKfycby7a82T...` fijada en la
-  versión 10 (v13, desde el 16/10/2026). No cambia con `clasp push`; solo con
+  versión 11 (v13.1, desde el 17/10/2026). No cambia con `clasp push`; solo con
   `clasp version` + `clasp deploy -i <id> -V <versión>`. Para volver atrás:
-  `-V 9` (v12 + zona Mendoza). `clasp push` se saltea los cambios del
+  `-V 10` (v13). `clasp push` se saltea los cambios del
   manifiesto sin avisar: con `appsscript.json` modificado, `clasp push --force`.
 - **La zona del script viaja en el manifiesto de cada versión.** Script y
   planilla tienen que estar en la misma zona (`America/Argentina/Mendoza`
@@ -95,7 +96,7 @@ abrir un desplegable ni un calendario por código (#59, #60).
 ## Arquitectura (lo que cruza archivos)
 
 - Web app publicada como *Ejecutar como: usuario que accede*: cada uno escribe
-  con su propia cuenta. Por eso la migración de la personal (Fase 3) tiene que
+  con su propia cuenta. Por eso la migración de la personal (Etapa 4) tiene que
   ser un botón dentro de la app, no un script con la cuenta de servicio del MCP.
 - Planilla compartida: muchas hojas son **calculadas** (Servicios = SUMIFS
   desde Pagos servicios; Gastos diarios = QUERY; H/I de Gastos con
@@ -107,9 +108,10 @@ abrir un desplegable ni un calendario por código (#59, #60).
   CacheService, chequeado y grabado dentro del mismo lock. La clave se graba
   solo si el guardado terminó bien. El cliente (`llamar()`) reusa el
   `idEnvio` mientras el envío no tenga una respuesta **exitosa** y el
-  contenido (sin el adjunto) sea el mismo; los envíos pendientes viajan en el
-  borrador. Todo formulario de la web app que escriba pasa por `llamar()`
-  (el panel lateral no: corre en la PC, ver #46).
+  contenido (sin el adjunto) sea el mismo. No hay borrador ni recarga (se
+  sacaron en #69): con dos cortes seguidos la app pide cerrarla y volver a
+  abrirla. Todo formulario de la web app que escriba pasa por `llamar()`. El lock espera 10 s, antes
+  del corte de 15 s del cliente (#70).
 - Montos: `aNumero` aplica la regla argentina (`"15.250"` = quince mil
   doscientos cincuenta). Es acordado, no es bug.
 
@@ -123,5 +125,3 @@ abrir un desplegable ni un calendario por código (#59, #60).
   Para desarrollar la migración, usar la copia de Marcos.
 - Nunca guardar números de tarjeta (alcanza con nombre, empresa, banco, cierre
   y vencimiento).
-- `Codigo_v11.gs` + `Web_v9.html` (Fase 1) **no se instalan tal cual**: van
-  como v12 con los arreglos.

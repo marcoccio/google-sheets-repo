@@ -78,13 +78,6 @@
 
   .acumulado { display: flex; gap: 9px; }
 
-  .acumulado div {
-    flex: 1;
-    background: rgba(255,255,255,.13);
-    border-radius: 10px;
-    padding: 11px 12px;
-  }
-
   .acumulado span {
     display: block;
     font-size: 11px;
@@ -835,6 +828,11 @@
 <script>
   var OPC = null;
   var TIPO_PERSONAL = 'Gastos';
+  var ETIQUETAS_PERSONAL = {
+    Gastos: 'Guardar gasto personal',
+    Ingresos: 'Guardar ingreso personal',
+    Ahorros: 'Guardar ahorro'
+  };
   var SECCION = 'depto';
   var PERSONAL_CARGADO = false;
   var YO = 'Marcos';
@@ -857,11 +855,6 @@
     document.getElementById('desde').value = fechaLocal(hace30);
 
     google.script.run.withSuccessHandler(iniciar).obtenerOpciones();
-    google.script.run
-      .withSuccessHandler(function (url) {
-        document.getElementById('verPlanilla').href = url;
-      })
-      .urlPlanilla();
 
     conectarEnter('monto');
     conectarEnter('montoServicio');
@@ -876,6 +869,7 @@
 
   function iniciar(datos) {
     OPC = datos;
+    document.getElementById('verPlanilla').href = datos.url;
 
     if (datos.yo) {
       YO = datos.yo.nombre;
@@ -923,12 +917,6 @@
 
   function llenar(id, valores) {
     var sel = document.getElementById(id);
-    // Solo se escriben opciones en un <select>. Evita que un id repetido
-    // haga que las opciones terminen dentro de otro elemento.
-    if (!sel || sel.tagName !== 'SELECT') {
-      console.warn('llenar(): "' + id + '" no es un select.');
-      return;
-    }
     sel.innerHTML = '';
     (valores || []).forEach(function (v) {
       var o = document.createElement('option');
@@ -1009,18 +997,14 @@
       document.getElementById(b).classList.remove('activo');
     });
 
-    if (cual === 'depto') {
-      document.getElementById('zonaDepto').classList.remove('oculto');
-      document.getElementById('destDepto').classList.add('activo');
-    } else if (cual === 'personal') {
-      document.getElementById('zonaPersonal').classList.remove('oculto');
-      document.getElementById('destPersonal').classList.add('activo');
+    var nombre = cual.charAt(0).toUpperCase() + cual.slice(1);
+    document.getElementById('zona' + nombre).classList.remove('oculto');
+    var boton = document.getElementById('dest' + nombre);
+    if (boton) boton.classList.add('activo');
+
+    if (cual === 'personal') {
       revisarPersonal();
-    } else if (cual === 'conciliar') {
-      document.getElementById('zonaConciliar').classList.remove('oculto');
-      document.getElementById('destConciliar').classList.add('activo');
-    } else {
-      document.getElementById('zonaAjustes').classList.remove('oculto');
+    } else if (cual === 'ajustes') {
       if (OPC && OPC.yo) {
         document.getElementById('ajMail').textContent = OPC.yo.mail || '-';
         document.getElementById('ajNombre').textContent = YO;
@@ -1048,12 +1032,7 @@
 
     if (OPC && OPC.personales) llenar('categoriaPersonal', OPC.personales[hoja]);
 
-    var etiquetas = {
-      Gastos: 'Guardar gasto personal',
-      Ingresos: 'Guardar ingreso personal',
-      Ahorros: 'Guardar ahorro'
-    };
-    document.getElementById('btnPersonal').textContent = etiquetas[hoja];
+    document.getElementById('btnPersonal').textContent = ETIQUETAS_PERSONAL[hoja];
     limpiarAviso();
   }
 
@@ -1086,9 +1065,7 @@
 
   function limpiarAdjunto(idInput, idLabel) {
     document.getElementById(idInput).value = '';
-    var lbl = document.getElementById(idLabel);
-    lbl.querySelector('span').textContent = 'Tocá para adjuntar foto o PDF';
-    lbl.classList.remove('cargado');
+    marcarAdjunto(idInput, idLabel);
   }
 
   /** Lee el archivo y devuelve una promesa con {nombre, tipo, datos}. */
@@ -1229,132 +1206,100 @@
 
   /* ---- Guardar en el depto ---- */
 
-  function enviarGasto() {
-    var monto = document.getElementById('monto').value;
+  /** Valida el monto, lee el adjunto si hay y envia el formulario al servidor. */
+  function enviar(cfg) {
+    var monto = document.getElementById(cfg.monto).value;
     if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
 
-    ocupado('btnGasto', 'Guardando…');
+    ocupado(cfg.btn, 'Guardando…');
 
     function fallo(e) {
-      ocupado('btnGasto', '', 'Guardar gasto');
+      ocupado(cfg.btn, '', cfg.texto);
       mostrar(e.message, 'error');
     }
 
-    leerArchivo('archGasto').then(function (comp) {
-      llamar('guardarGasto',
-        {
+    function mandar(comp) {
+      var datos = cfg.datos(comp);
+      datos.monto = monto; // el validado, no lo que haya en el campo ahora
+      llamar(cfg.fn, datos, function (msg) {
+        ocupado(cfg.btn, '', cfg.texto);
+        cfg.limpia.forEach(function (id) { document.getElementById(id).value = ''; });
+        if (cfg.arch) limpiarAdjunto(cfg.arch, cfg.lbl);
+        mostrar(msg, 'ok');
+        if (cfg.refresca) cfg.refresca();
+      }, fallo);
+    }
+
+    if (cfg.arch) leerArchivo(cfg.arch).then(mandar, fallo);
+    else mandar(null);
+  }
+
+  function enviarGasto() {
+    enviar({
+      btn: 'btnGasto', texto: 'Guardar gasto', monto: 'monto',
+      arch: 'archGasto', lbl: 'lblGasto', fn: 'guardarGasto',
+      limpia: ['monto', 'descripcion'], refresca: refrescarAcumulado,
+      datos: function (comp) {
+        return {
           fecha: fechaDe('fecha'),
           categoria: document.getElementById('categoria').value,
           detalle: document.getElementById('detalle').value,
           descripcion: document.getElementById('descripcion').value,
-          monto: monto,
           pagadoPor: document.getElementById('pagadoPor').value,
           division: document.getElementById('division').value,
           comprobante: comp
-        },
-        function (msg) {
-          ocupado('btnGasto', '', 'Guardar gasto');
-          document.getElementById('monto').value = '';
-          document.getElementById('descripcion').value = '';
-          limpiarAdjunto('archGasto', 'lblGasto');
-          mostrar(msg, 'ok');
-          refrescarAcumulado();
-        },
-        fallo);
-    }, fallo);
+        };
+      }
+    });
   }
 
   function enviarServicio() {
-    var monto = document.getElementById('montoServicio').value;
-    if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
-
-    ocupado('btnServicio', 'Guardando…');
-
-    function fallo(e) {
-      ocupado('btnServicio', '', 'Guardar servicio');
-      mostrar(e.message, 'error');
-    }
-
-    leerArchivo('archServicio').then(function (comp) {
-      llamar('guardarServicio',
-        {
+    enviar({
+      btn: 'btnServicio', texto: 'Guardar servicio', monto: 'montoServicio',
+      arch: 'archServicio', lbl: 'lblServicio', fn: 'guardarServicio',
+      limpia: ['montoServicio'], refresca: refrescarAcumulado,
+      datos: function (comp) {
+        return {
           fecha: fechaDe('fechaServicio'),
           servicio: document.getElementById('servicio').value,
           mes: document.getElementById('mes').value,
-          monto: monto,
           pagadoPor: document.getElementById('pagoServicio').value,
           division: document.getElementById('divisionServicio').value,
           comprobante: comp
-        },
-        function (msg) {
-          ocupado('btnServicio', '', 'Guardar servicio');
-          document.getElementById('montoServicio').value = '';
-          limpiarAdjunto('archServicio', 'lblServicio');
-          mostrar(msg, 'ok');
-          refrescarAcumulado();
-        },
-        fallo);
-    }, fallo);
+        };
+      }
+    });
   }
 
   function enviarIngreso() {
-    var monto = document.getElementById('montoIngreso').value;
-    if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
-
-    ocupado('btnIngreso', 'Guardando…');
-
-    function fallo(e) {
-      ocupado('btnIngreso', '', 'Guardar ingreso');
-      mostrar(e.message, 'error');
-    }
-
-    leerArchivo('archIngreso').then(function (comp) {
-      llamar('guardarIngreso',
-        {
+    enviar({
+      btn: 'btnIngreso', texto: 'Guardar ingreso', monto: 'montoIngreso',
+      arch: 'archIngreso', lbl: 'lblIngreso', fn: 'guardarIngreso',
+      limpia: ['montoIngreso', 'descripcionIngreso'], refresca: refrescarAcumulado,
+      datos: function (comp) {
+        return {
           fecha: fechaDe('fechaIngreso'),
           concepto: document.getElementById('conceptoIngreso').value,
           descripcion: document.getElementById('descripcionIngreso').value,
-          monto: monto,
           recibidoPor: document.getElementById('recibidoPor').value,
           comprobante: comp
-        },
-        function (msg) {
-          ocupado('btnIngreso', '', 'Guardar ingreso');
-          document.getElementById('montoIngreso').value = '';
-          document.getElementById('descripcionIngreso').value = '';
-          limpiarAdjunto('archIngreso', 'lblIngreso');
-          mostrar(msg, 'ok');
-          refrescarAcumulado();
-        },
-        fallo);
-    }, fallo);
+        };
+      }
+    });
   }
 
   function enviarTransferencia() {
-    var monto = document.getElementById('montoTransferencia').value;
-    if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
-
-    ocupado('btnTransferencia', 'Guardando…');
-
-    function fallo(e) {
-      ocupado('btnTransferencia', '', 'Guardar transferencia');
-      mostrar(e.message, 'error');
-    }
-
-    llamar('guardarTransferencia',
-      {
-        fecha: fechaDe('fechaTransferencia'),
-        de: document.getElementById('deTransferencia').value,
-        monto: monto,
-        descripcion: document.getElementById('descripcionTransferencia').value
-      },
-      function (msg) {
-        ocupado('btnTransferencia', '', 'Guardar transferencia');
-        document.getElementById('montoTransferencia').value = '';
-        document.getElementById('descripcionTransferencia').value = '';
-        mostrar(msg, 'ok');
-      },
-      fallo);
+    enviar({
+      btn: 'btnTransferencia', texto: 'Guardar transferencia', monto: 'montoTransferencia',
+      fn: 'guardarTransferencia', limpia: ['montoTransferencia', 'descripcionTransferencia'],
+      datos: function () {
+        return {
+          fecha: fechaDe('fechaTransferencia'),
+          de: document.getElementById('deTransferencia').value,
+          descripcion: document.getElementById('descripcionTransferencia').value
+        };
+      }
+    });
   }
 
   /* ---- Personal ---- */
@@ -1424,36 +1369,19 @@
   }
 
   function enviarPersonal() {
-    var monto = document.getElementById('montoPersonal').value;
-    if (!monto || Number(monto) <= 0) return mostrar('Escribí un monto mayor a cero.', 'error');
-
-    var etiquetas = {
-      Gastos: 'Guardar gasto personal',
-      Ingresos: 'Guardar ingreso personal',
-      Ahorros: 'Guardar ahorro'
-    };
-    var texto = etiquetas[TIPO_PERSONAL];
-    ocupado('btnPersonal', 'Guardando...');
-
-    llamar('guardarMovimientoPersonal',
-      {
-        fecha: fechaDe('fechaPersonal'),
-        hoja: TIPO_PERSONAL,
-        categoria: document.getElementById('categoriaPersonal').value,
-        descripcion: document.getElementById('descripcionPersonal').value,
-        monto: monto
-      },
-      function (msg) {
-        ocupado('btnPersonal', '', texto);
-        document.getElementById('montoPersonal').value = '';
-        document.getElementById('descripcionPersonal').value = '';
-        mostrar(msg, 'ok');
-        refrescarTotalPersonal();
-      },
-      function (e) {
-        ocupado('btnPersonal', '', texto);
-        mostrar(e.message, 'error');
-      });
+    enviar({
+      btn: 'btnPersonal', texto: ETIQUETAS_PERSONAL[TIPO_PERSONAL], monto: 'montoPersonal',
+      fn: 'guardarMovimientoPersonal', limpia: ['montoPersonal', 'descripcionPersonal'],
+      refresca: refrescarTotalPersonal,
+      datos: function () {
+        return {
+          fecha: fechaDe('fechaPersonal'),
+          hoja: TIPO_PERSONAL,
+          categoria: document.getElementById('categoriaPersonal').value,
+          descripcion: document.getElementById('descripcionPersonal').value
+        };
+      }
+    });
   }
 
   /* ---- Conciliar ---- */

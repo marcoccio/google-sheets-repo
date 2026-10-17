@@ -4,6 +4,16 @@ Armado el 12/10/2026 a partir de `TRASPASO_claude_code.md`, del código bajado
 con clasp y de una lectura (solo lectura) de la planilla compartida. Cada fila
 de las tablas de etapas es un issue de GitHub.
 
+## Estado (17/10/2026)
+
+| | |
+|---|---|
+| Instalado | **v13.1** en el celular (versión 11) y en HEAD (17/10): limpieza post v13 con ponytail (#87, #90, #91) y sin panel lateral |
+| Hechas | Etapas 0, 1 (salvo 1.3 y 1.4), 2 (v12) y 3 (v13: 1.2, 3.1, 3.2) |
+| Pendiente de datos | 1.3 (#6, fecha 1970) y 1.4 (#7, alquiler de septiembre): Marcos los corrige después de las mejoras |
+| Descartado | 3.4 (#49) |
+| Congelado | 3.5 (#50), #73, Etapas 4 y 5. Cuál va primero se decide después de la limpieza post-v13 |
+
 ## Lo que cambió respecto del traspaso
 
 | Tema | Traspaso | Verificado ahora |
@@ -24,7 +34,10 @@ de las tablas de etapas es un issue de GitHub.
   ramas `dev/...` a la vez); las ramas son `dev/<categoría>/<módulo>/<issue>-<descripción>`;
   los PR van a `develop` por squash, con título `Tipo(scope): descripción`. El
   merge `develop` → `main` se hace al instalar, con tag `vNN` (v12, v13...), que
-  sigue la numeración que ya traían los archivos.
+  sigue la numeración que ya traían los archivos. **El release a `main` va
+  siempre con merge commit** (`gh pr merge N --merge`), nunca squash: un squash
+  le saca a `main` la historia de `develop` y el release siguiente da
+  conflicto (pasó con v13, #85; se arregló en #94).
 - **Labels**: `type:fix`, `type:feat`, `type:refactor`, `type:chore`, `type:test`,
   `type:docs`; `etapa:0` a `etapa:5`; `ejecuta:claude`, `ejecuta:gemini`,
   `ejecuta:marcos`; `toca-produccion` (necesita confirmación de Marcos antes de
@@ -202,13 +215,19 @@ hizo #68, #69 y #71 sin correcciones, con las pruebas escritas antes por Claude.
 Con
 `run_in_background`; el progreso se sigue en `<issue>.log`.
 
-**Bloque de herramientas** (al principio de cada prompt):
+**Bloque de herramientas** (al principio de cada prompt). Ponytail está
+instalado como plugin de `agy` (desde el 17/10/2026), pero el agente solo lo
+usa si el prompt se lo pide: la línea de ponytail va siempre. Verificado dentro
+del aislamiento de `agy-run.sh`: el agente lee la skill y cita su contenido.
+
 
 ```
 HERRAMIENTAS (ya instaladas y verificadas; usá solo estas, con estos comandos):
 - Pruebas: `node --test 'pruebas/*.test.js'` desde la raíz (Node 22, sin
   dependencias). Es la única forma de verificar tu trabajo; pegá la salida completa en tu respuesta.
 - Archivos: leé con tu herramienta de lectura; escribí solo en esta carpeta.
+- Ponytail: usá la skill `ponytail` (modo full) para escribir el código: la
+  solución más corta que funciona, sin abstracciones que no se pidieron.
 - RAM: tenés 1 GB; esta tarea no necesita más.
 
 PROHIBIDO:
