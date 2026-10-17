@@ -181,6 +181,33 @@ function deshacerFila(hoja, fila, columnas, queCosa) {
 }
 
 
+/** Agrega una fila abajo de todo, relee el monto y la deshace si no coincide. */
+function agregarFila(hoja, valores, colMonto, monto, queCosa) {
+  var fila = ultimaFilaReal(hoja) + 1;
+  hoja.getRange(fila, 1, 1, valores.length).setValues([valores]);
+  SpreadsheetApp.flush();
+  if (Number(hoja.getRange(fila, colMonto).getValue()) !== monto) {
+    deshacerFila(hoja, fila, valores.length, queCosa);
+  }
+  return fila;
+}
+
+
+/**
+ * Pone el link "Ver" del comprobante. Va despues de la escritura verificada:
+ * si falla, el guardado ya cuenta y el mensaje lo dice (#68).
+ */
+function ponerLink(hoja, fila, col, link) {
+  if (!link) return '';
+  try {
+    hoja.getRange(fila, col).setFormula('=HYPERLINK("' + link + '";"Ver")');
+    return ' (con comprobante)';
+  } catch (e) {
+    return ' (sin el link del comprobante)';
+  }
+}
+
+
 function comoPlata(n) {
   var signo = n < 0 ? '-' : '';
   return signo + '$' + Math.abs(Math.round(n)).toLocaleString('es-AR');
@@ -421,29 +448,12 @@ function escribirGasto_(d) {
   if (monto === 0) throw new Error('El monto no puede ser cero.');
 
   var hoja = planilla().getSheetByName(HOJA_GASTOS);
-  var fila = ultimaFilaReal(hoja) + 1;
-
   var link = guardarComprobante(d.comprobante, d.detalle || 'Gasto', d.fecha);
-
-  hoja.getRange(fila, 1, 1, 7).setValues([[
+  var fila = agregarFila(hoja, [
     aFecha(d.fecha), d.categoria, d.detalle, d.descripcion,
     monto, d.pagadoPor, d.division
-  ]]);
-
-  SpreadsheetApp.flush();
-  if (Number(hoja.getRange(fila, 5).getValue()) !== monto) {
-    deshacerFila(hoja, fila, 7, 'El gasto');
-  }
-
-  var avisoLink = '';
-  if (link) {
-    try {
-      hoja.getRange(fila, 12).setFormula('=HYPERLINK("' + link + '";"Ver")');
-      avisoLink = ' (con comprobante)';
-    } catch (e) {
-      avisoLink = ' (sin el link del comprobante)';
-    }
-  }
+  ], 5, monto, 'El gasto');
+  var avisoLink = ponerLink(hoja, fila, 12, link);
 
   return 'Gasto cargado: ' + d.detalle + ' ' + comoPlata(monto) + avisoLink;
 }
@@ -467,29 +477,12 @@ function escribirServicio_(d) {
   if (DIVISIONES.indexOf(division) === -1) throw new Error('División invalida: "' + division + '".');
 
   var hoja = planilla().getSheetByName(HOJA_PAGOS_SERV);
-  var fila = ultimaFilaReal(hoja) + 1;
-
   var link = guardarComprobante(d.comprobante, d.servicio + ' ' + d.mes, d.fecha);
-
   // F (comprobante) va vacia; el link se pone despues.
-  hoja.getRange(fila, 1, 1, 7).setValues([[
+  var fila = agregarFila(hoja, [
     aFecha(d.fecha), d.servicio, d.mes, monto, d.pagadoPor, '', division
-  ]]);
-
-  SpreadsheetApp.flush();
-  if (Number(hoja.getRange(fila, 4).getValue()) !== monto) {
-    deshacerFila(hoja, fila, 7, 'El pago');
-  }
-
-  var avisoLink = '';
-  if (link) {
-    try {
-      hoja.getRange(fila, 6).setFormula('=HYPERLINK("' + link + '";"Ver")');
-      avisoLink = ' con comprobante';
-    } catch (e) {
-      avisoLink = ' (sin el link del comprobante)';
-    }
-  }
+  ], 4, monto, 'El pago');
+  var avisoLink = ponerLink(hoja, fila, 6, link);
 
   return d.servicio + ' de ' + d.mes + ': ' + comoPlata(monto) +
          ' (pagó ' + d.pagadoPor + ')' + avisoLink;
@@ -512,16 +505,9 @@ function escribirTransferencia_(d) {
 
   var hoja = planilla().getSheetByName(HOJA_TRANSFERENCIAS);
   if (!hoja) throw new Error('No encontré la hoja "' + HOJA_TRANSFERENCIAS + '".');
-  var fila = ultimaFilaReal(hoja) + 1;
-
-  hoja.getRange(fila, 1, 1, 5).setValues([[
+  agregarFila(hoja, [
     aFecha(d.fecha), d.de, para, monto, d.descripcion || ''
-  ]]);
-
-  SpreadsheetApp.flush();
-  if (Number(hoja.getRange(fila, 4).getValue()) !== monto) {
-    deshacerFila(hoja, fila, 5, 'La transferencia');
-  }
+  ], 4, monto, 'La transferencia');
 
   return 'Transferencia cargada: ' + d.de + ' a ' + para + ' ' + comoPlata(monto);
 }
@@ -536,30 +522,14 @@ function escribirIngreso_(d) {
   if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
 
   var hoja = planilla().getSheetByName(HOJA_INGRESOS);
-  var fila = ultimaFilaReal(hoja) + 1;
-
   var link = guardarComprobante(d.comprobante, d.concepto || 'Ingreso', d.fecha);
-
-  hoja.getRange(fila, 1, 1, 4).setValues([[
+  var fila = agregarFila(hoja, [
     aFecha(d.fecha),
     d.concepto + (d.descripcion ? ' - ' + d.descripcion : ''),
     monto,
     d.recibidoPor
-  ]]);
-
-  SpreadsheetApp.flush();
-  if (Number(hoja.getRange(fila, 3).getValue()) !== monto) {
-    deshacerFila(hoja, fila, 4, 'El ingreso');
-  }
-
-  var avisoLink = '';
-  if (link) {
-    try {
-      hoja.getRange(fila, 5).setFormula('=HYPERLINK("' + link + '";"Ver")');
-    } catch (e) {
-      avisoLink = ' (sin el link del comprobante)';
-    }
-  }
+  ], 3, monto, 'El ingreso');
+  var avisoLink = ponerLink(hoja, fila, 5, link);
 
   return 'Ingreso cargado: ' + d.concepto + ' ' + comoPlata(monto) + avisoLink;
 }
