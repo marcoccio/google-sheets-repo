@@ -29,7 +29,10 @@ function parsearA1(a1) {
 
 // fallas.relectura: si una celda guarda este valor, al leerla devuelve
 // 'basura'. Simula "escribí y la relectura no coincide" (A2, M1).
-const fallas = { relectura: undefined };
+// fallas.formulas(formula, { hoja, fila, col }): si se define, getValues
+// devuelve lo que calcule para cada celda con formula (la planilla falsa no
+// calcula nada por si misma).
+const fallas = { relectura: undefined, formulas: undefined };
 
 function crearRango(hojaData, fila, col, numFilas, numCols) {
   return {
@@ -51,7 +54,10 @@ function crearRango(hojaData, fila, col, numFilas, numCols) {
         for (let c = 0; c < numCols; c++) {
           const colIdx = col + c - 1;
           if (filaData && filaData[colIdx] !== undefined) {
-            const v = filaData[colIdx];
+            let v = filaData[colIdx];
+            if (fallas.formulas && typeof v === 'string' && v.charAt(0) === '=') {
+              v = fallas.formulas(v, { hoja: hojaData.nombre, fila: filaIdx + 1, col: colIdx + 1 });
+            }
             filaArr.push(fallas.relectura !== undefined && v === fallas.relectura ? 'basura' : v);
           } else {
             filaArr.push('');
@@ -87,6 +93,25 @@ function crearRango(hojaData, fila, col, numFilas, numCols) {
     setFormula(f) {
       this.setValue(f);
     },
+    // Las formulas se guardan como texto; getFormulas devuelve las que empiezan con '='.
+    getFormulas() {
+      const evaluar = fallas.formulas;
+      fallas.formulas = undefined;
+      try {
+        return this.getValues().map(f => f.map(v => (typeof v === 'string' && v.charAt(0) === '=') ? v : ''));
+      } finally {
+        fallas.formulas = evaluar;
+      }
+    },
+    setFormulas(m) {
+      this.setValues(m);
+    },
+    setNumberFormat() {
+      return this;
+    },
+    setFontWeight() {
+      return this;
+    },
     clearContent() {
       this.setValues(Array.from({ length: numFilas }, () => Array(numCols).fill('')));
     },
@@ -119,7 +144,8 @@ function crearHojaObj(hojaData) {
       const numFilas = args.length > 2 ? args[2] : 1;
       const numCols = args.length > 3 ? args[3] : 1;
       return crearRango(hojaData, fila, col, numFilas, numCols);
-    }
+    },
+    setFrozenRows() {}
   };
 }
 
@@ -134,13 +160,26 @@ function crearPlanillaObj(planillaData, zona = 'America/Argentina/Mendoza') {
     getUrl() {
       return `https://docs.google.com/spreadsheets/d/${planillaData.id}`;
     },
+    // La zona se guarda en la planilla: setSpreadsheetTimeZone la cambia (#23).
     getSpreadsheetTimeZone() {
-      return zona;
+      return planillaData.zona || zona;
+    },
+    setSpreadsheetTimeZone(z) {
+      planillaData.zona = z;
     },
     getSheetByName(nombre) {
       const hojaData = planillaData.hojas.get(nombre);
       if (!hojaData) return null;
       return crearHojaObj(hojaData);
+    },
+    insertSheet(nombre) {
+      if (planillaData.hojas.has(nombre)) throw new Error(`Ya existe la hoja ${nombre}`);
+      const hojaData = { nombre, filas: [], notas: new Map() };
+      planillaData.hojas.set(nombre, hojaData);
+      return crearHojaObj(hojaData);
+    },
+    deleteSheet(hoja) {
+      planillaData.hojas.delete(hoja.getName());
     }
   };
 }
@@ -310,6 +349,7 @@ function crearServicios(planillas = {}, opciones = {}) {
   };
 
   fallas.relectura = undefined;
+  fallas.formulas = undefined;
 
   return {
     fallas,

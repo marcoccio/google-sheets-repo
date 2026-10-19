@@ -802,6 +802,16 @@
 
     <div class="tarjeta" style="margin-top:14px">
       <div class="nota">
+        Pasar tu planilla personal a una fila por movimiento. Lo que ya cargaste
+        queda como un saldo por mes. Primero simulá: no cambia nada.
+      </div>
+      <button class="secundario" id="btnSimular" onclick="pedirSimulacion()">Simular la migración</button>
+      <div class="nota oculto" id="informeMigracion"></div>
+      <button class="guardar oculto" id="btnMigrar" onclick="pedirMigracion()">Migrar ahora</button>
+    </div>
+
+    <div class="tarjeta" style="margin-top:14px">
+      <div class="nota">
         Si querés empezar de cero con tus finanzas personales, desvinculá la
         planilla actual y creá una nueva. La planilla vieja no se borra.
       </div>
@@ -1382,6 +1392,48 @@
         };
       }
     });
+  }
+
+  /* ---- Migracion de la personal (#23) ---- */
+
+  function pedirSimulacion() {
+    ocupado('btnSimular', 'Revisando…');
+    google.script.run
+      .withSuccessHandler(function (r) {
+        ocupado('btnSimular', '', 'Simular la migración');
+        var informe = document.getElementById('informeMigracion');
+        informe.classList.remove('oculto');
+        if (r.migrada) {
+          informe.textContent = 'Tu planilla ya está migrada.';
+          document.getElementById('btnMigrar').classList.add('oculto');
+          return;
+        }
+        informe.textContent = r.hojas.map(function (h) {
+          return h.tipo + ': ' + h.celdas + ' celdas, ' + h.total;
+        }).join(' · ') + '. Zona horaria: ' + r.zona +
+          (r.zona !== r.zonaScript ? ' (pasa a ' + r.zonaScript + ')' : '') + '.';
+        document.getElementById('btnMigrar').classList.remove('oculto');
+      })
+      .withFailureHandler(function (e) {
+        ocupado('btnSimular', '', 'Simular la migración');
+        mostrar(e.message, 'error');
+      })
+      .simularMigracion();
+  }
+
+  function pedirMigracion() {
+    ocupado('btnMigrar', 'Migrando…');
+    llamar('migrarPersonal', {},
+      function (msg) {
+        ocupado('btnMigrar', '', 'Migrar ahora');
+        document.getElementById('btnMigrar').classList.add('oculto');
+        mostrar(msg, 'ok');
+        refrescarTotalPersonal();
+      },
+      function (e) {
+        ocupado('btnMigrar', '', 'Migrar ahora');
+        mostrar(e.message, 'error');
+      });
   }
 
   /* ---- Conciliar ---- */
