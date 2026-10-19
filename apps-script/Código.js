@@ -765,7 +765,7 @@ function consultaCategorias(nombreHoja) {
     var fin = r + sec[1].length - 1;
     partes.push(nombreHoja + '!A' + r + ':A' + fin + '\\' +
                 nombreHoja + '!N' + r + ':N' + fin);
-    r = fin + 3;
+    r = fin + 4; // subtotal, vacia y encabezado de la seccion siguiente (#95)
   });
 
   return '=IFERROR(QUERY({' + partes.join(';') +
