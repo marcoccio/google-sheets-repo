@@ -8,11 +8,12 @@ de las tablas de etapas es un issue de GitHub.
 
 | | |
 |---|---|
-| Instalado | **v13.1** en el celular (versión 11) y en HEAD (17/10): limpieza post v13 con ponytail (#87, #90, #91) y sin panel lateral |
+| Instalado | **v14** en el celular (versión 12) y en HEAD (19/10): personal por filas (#22, #23, #95). Falta la migración real de cada uno (#24) |
 | Hechas | Etapas 0, 1 (salvo 1.3 y 1.4), 2 (v12) y 3 (v13: 1.2, 3.1, 3.2) |
 | Pendiente de datos | 1.3 (#6, fecha 1970) y 1.4 (#7, alquiler de septiembre): Marcos los corrige después de las mejoras |
 | Descartado | 3.4 (#49) |
-| Congelado | 3.5 (#50), #73, Etapas 4 y 5. Cuál va primero se decide después de la limpieza post-v13 |
+| En curso | #24: migración real (Marcos, después Flor) |
+| Congelado | 3.5 (#50), #73, Etapa 5 (v15) |
 
 ## Lo que cambió respecto del traspaso
 
@@ -150,21 +151,23 @@ guardados tardan menos de 5 s y el lock corta a 10 s, así que el caso es muy
 raro. 3.5 (#50) y #73 (comprobante directo a Drive) quedan congelados. Qué
 etapa grande va después (4 o 5) se decide cuando v13 esté instalada.
 
-### Etapa 4 — Fase 3: personal por filas (P1)
+### Etapa 4 — Fase 3: personal por filas (P1) → v14
+
+**Simplificada el 17/10/2026** (decisión de Marcos): los datos viejos de las
+personales no hace falta conservarlos al detalle; se van a reconstruir desde
+los resúmenes de bancos y billeteras. No se leen las notas.
 
 | # | Issue | Tipo | Ejecuta | Depende | Criterio de aceptación |
 |---|---|---|---|---|---|
-| 4.1 | Parser de notas `dd/MM: descripción $monto` (una por línea), con montos en regla argentina vía `aNumero` | feat | **gemini** | 2.10 | Pruebas con notas reales sacadas de la copia de Marcos, incluidas líneas que no matchean (se reportan, no se descartan) |
-| 4.2 | Hoja Movimientos + grilla con SUMIFS | feat | claude | 4.1 | En la copia: la grilla nueva da lo mismo que la vieja, celda por celda |
-| 4.3 | Botón de migración en la app, con **modo simulación** que muestra el informe sin tocar nada; verifica y fija la zona horaria de la planilla personal | feat | claude | 4.1, 4.2 | Simulación sobre la copia de Marcos: diferencia 0 en cada celda (filas 5–32 de Gastos, 5–20 de Ingresos, 5–24 de Ahorros) |
-| 4.4 | Migración real: primero Marcos, después Flor con su propia cuenta | chore | marcos (+ Flor) | 4.3 | Informe de cada uno archivado en el issue. `toca-produccion` |
+| 4.1 | ~~Parser de notas~~ (#21) | — | — | — | **Descartado** |
+| 4.2 | Hoja Movimientos + grilla con SUMIFS; `guardarMovimientoPersonal` agrega filas si la planilla tiene Movimientos y si no suma como hoy (doble modo) (#22) | feat | claude | — | Pruebas de los dos modos e idempotencia |
+| 4.3 | Botón Simular/Migrar: zona horaria, cada celda con valor → una fila "Saldo anterior a la migración", fórmulas, verificación celda por celda y vuelta atrás (#23) | feat | claude | 4.2 | Simulación y migración del respaldo de Marcos con totales iguales |
+| 4.5 | El Resumen de la personal no lista algunas categorías: rangos corridos en `consultaCategorias` (#95) | fix | claude | — | Rangos = filas de `armarHojaMovimientos` |
+| 4.6 | Instalar v14 (#96) | chore | marcos + claude | 4.2, 4.3, 4.5 | Igual que 3.3. `toca-produccion`. **Instalado el 19/10/2026** (versión 12); migración probada sobre el respaldo de Marcos |
+| 4.4 | Migración real: primero Marcos, después Flor con su cuenta (#24) | chore | marcos (+ Flor) | 4.6 | Informe de cada uno en el issue. `toca-produccion` |
 
-Las notas cargadas **antes de v12** pueden tener el día corrido si se cargaron
-después de las 21 h (H1): la nota **y la columna**. El parser no puede saberlo.
-La migración conserva el mes de la columna para que los totales cuadren, y el
-informe marca esas notas como "fecha no confiable" en vez de presentarlas como
-correctas. Además, cada planilla personal tiene la zona de la cuenta que la
-creó: la migración la verifica y la fija (4.3).
+Después (sin issue todavía): importar los resúmenes de bancos y billeteras a
+Movimientos, cuando estén los archivos para ver el formato real.
 
 ### Etapa 5 — Fase 4: tarjetas y cuotas (P2)
 
@@ -174,7 +177,7 @@ creó: la migración la verifica y la fija (4.3).
 | 5.2 | Backend: tarjetas (nombre, empresa, banco, cierre, vencimiento; **nunca** el número) y compras en cuotas en la personal del dueño y en la compartida. En USD se carga la **tasa a la que se consiguieron los dólares** | feat | claude | 5.1 | Las filas "Cuotas del mes" y "Puso Marcos/Flor" del Resumen dan lo esperado con un caso de prueba en la copia |
 | 5.3 | Formulario de compra en cuotas; muestra **solo las tarjetas de quien paga** | feat | **gemini** | 5.2 | Revisión + prueba en `/dev` |
 | 5.5 | Suscripciones (mensual, con tarjeta, hasta la baja) y compra única (= 1 cuota) | feat | claude | 5.1, 5.2 | Alta, cargo en el mes según cierre, baja |
-| 5.4 | Instalar v14 | chore | marcos + claude | 5.2, 5.3, 5.5 | Igual que 2.10. `toca-produccion` |
+| 5.4 | Instalar v15 | chore | marcos + claude | 5.2, 5.3, 5.5 | Igual que 2.10. `toca-produccion` |
 
 ### Fuera de este plan
 

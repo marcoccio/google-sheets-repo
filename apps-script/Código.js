@@ -11,6 +11,7 @@ var HOJA_LISTAS = 'Listas';
 var HOJA_RESUMEN = 'Resumen';
 var HOJA_INGRESOS = 'Ingresos';
 var HOJA_TRANSFERENCIAS = 'Transferencias';
+var HOJA_MOVIMIENTOS = 'Movimientos';
 
 var CLAVE_PERSONAL = 'ID_PLANILLA_PERSONAL';
 
@@ -577,6 +578,7 @@ function crearPlanillaPersonal() {
 
   armarResumenPersonal(ss, ano);
   armarAuxPersonal(ss);
+  armarMovimientos(ss);
 
   PropertiesService.getUserProperties().setProperty(CLAVE_PERSONAL, ss.getId());
 
@@ -609,7 +611,8 @@ function armarHojaMovimientos(hoja, secciones, ano) {
     var inicio = r;
 
     sec[1].forEach(function (cat) {
-      var fila = [cat].concat(new Array(12).fill(''));
+      var fila = [cat];
+      for (var mc = 2; mc <= 13; mc++) fila.push(formulaCelda(hoja.getName(), r, mc));
       fila.push('=SUM(B' + r + ':M' + r + ')');
       filas.push(fila);
       r++;
@@ -762,11 +765,24 @@ function consultaCategorias(nombreHoja) {
     var fin = r + sec[1].length - 1;
     partes.push(nombreHoja + '!A' + r + ':A' + fin + '\\' +
                 nombreHoja + '!N' + r + ':N' + fin);
-    r = fin + 3;
+    r = fin + 4; // subtotal, vacia y encabezado de la seccion siguiente (#95)
   });
 
   return '=IFERROR(QUERY({' + partes.join(';') +
          '};"select Col1, Col2 where Col2 > 0 order by Col2 desc";0);"Sin datos todavía")';
+}
+
+
+/** Hoja Movimientos de la personal (#22): una fila por movimiento. */
+function armarMovimientos(ss) {
+  var hoja = ss.insertSheet(HOJA_MOVIMIENTOS);
+  var encabezado = hoja.getRange(1, 1, 1, 6);
+  encabezado.setValues([['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto', 'Origen']]);
+  encabezado.setFontWeight('bold');
+  hoja.setFrozenRows(1);
+  hoja.getRange('A2:A1000').setNumberFormat('dd/mm/yyyy');
+  hoja.getRange('E2:E1000').setNumberFormat('$#,##0;-$#,##0');
+  return hoja;
 }
 
 
@@ -922,9 +938,9 @@ function vincularPlanillaPersonal(texto) {
 
 
 /**
- * Guarda un movimiento personal en la grilla de meses.
- * hoja: 'Gastos' | 'Ingresos' | 'Ahorros'
- * Suma al valor que ya haya en esa celda.
+ * Guarda un movimiento personal. hoja: 'Gastos' | 'Ingresos' | 'Ahorros'.
+ * Si la planilla ya tiene Movimientos (#22), agrega una fila y la grilla lo
+ * suma sola; si no (todavia no migro), suma en la celda del mes como antes.
  */
 function guardarMovimientoPersonal(d) {
   return unaVez(d, escribirMovimientoPersonal_);
@@ -949,6 +965,15 @@ function escribirMovimientoPersonal_(d) {
   var monto = aNumero(d.monto);
   if (monto <= 0) throw new Error('El monto tiene que ser mayor a cero.');
 
+  var aviso = d.hoja + ' - ' + d.categoria + ': ' + comoPlata(monto) + ' en ' + MESES[fecha.getMonth()];
+
+  var movimientos = ss.getSheetByName(HOJA_MOVIMIENTOS);
+  if (movimientos) {
+    agregarFila(movimientos, [fecha, d.hoja, d.categoria, d.descripcion || '', monto, 'app'],
+                5, monto, 'El movimiento');
+    return aviso;
+  }
+
   var celda = hoja.getRange(fila, col);
   var previo = celda.getValue();
   var actual = Number(previo) || 0;
@@ -970,8 +995,18 @@ function escribirMovimientoPersonal_(d) {
     }
   }
 
-  return d.hoja + ' - ' + d.categoria + ': ' + comoPlata(monto) +
-         ' en ' + MESES[fecha.getMonth()] + avisoNota;
+  return aviso + avisoNota;
+}
+
+
+/**
+ * Formula de una celda de la grilla personal (#22): suma Movimientos por
+ * tipo, categoria (columna A) y mes. La fila 1 tiene el ultimo dia del mes.
+ */
+function formulaCelda(tipo, fila, col) {
+  var c = String.fromCharCode(64 + col);
+  return '=SUMIFS(Movimientos!$E:$E;Movimientos!$B:$B;"' + tipo + '";Movimientos!$C:$C;$A' + fila +
+         ';Movimientos!$A:$A;">="&(EOMONTH(' + c + '$1;-1)+1);Movimientos!$A:$A;"<"&(' + c + '$1+1))';
 }
 
 
@@ -1009,6 +1044,135 @@ function totalesPersonales() {
   } catch (e) {
     return null;
   }
+}
+
+
+/* ---------- Migracion de la personal a Movimientos (#23) ---------- */
+
+/**
+ * Lee la grilla vieja de cada hoja: las filas de categoria y, de cada una,
+ * las celdas de mes con valor. No escribe nada.
+ */
+function leerGrillaPersonal_(ss) {
+  return ['Gastos', 'Ingresos', 'Ahorros'].map(function (tipo) {
+    var hoja = ss.getSheetByName(tipo);
+    if (!hoja) throw new Error('No encontré la hoja "' + tipo + '".');
+    var categorias = [];
+    PERSONAL[tipo].secciones.forEach(function (sec) { categorias = categorias.concat(sec[1]); });
+
+    var datos = hoja.getRange(1, 1, filaTotalDe(tipo), 13).getValues();
+    var ano = datos[0][1] && datos[0][1].getFullYear ? datos[0][1].getFullYear() : 0;
+    if (!ano) throw new Error('La fila 1 de "' + tipo + '" no tiene las fechas de los meses.');
+
+    var filas = [], celdas = [];
+    datos.forEach(function (f, i) {
+      if (categorias.indexOf(f[0]) === -1) return;
+      filas.push(i);
+      for (var m = 1; m <= 12; m++) {
+        var valor = Number(f[m]) || 0;
+        if (valor) celdas.push([new Date(ano, m, 0), tipo, f[0], 'Saldo anterior a la migración', valor, 'migrado']);
+      }
+    });
+    return { tipo: tipo, hoja: hoja, datos: datos, filas: filas, celdas: celdas };
+  });
+}
+
+
+/** Informe de la migracion, sin tocar nada. */
+function simularMigracion() {
+  var ss = planillaPersonal();
+  var grillas = leerGrillaPersonal_(ss);
+  return {
+    migrada: !!ss.getSheetByName(HOJA_MOVIMIENTOS),
+    zona: ss.getSpreadsheetTimeZone(),
+    zonaScript: Session.getScriptTimeZone(),
+    hojas: grillas.map(function (g) {
+      var total = g.celdas.reduce(function (t, c) { return t + c[4]; }, 0);
+      return { tipo: g.tipo, celdas: g.celdas.length, total: comoPlata(total) };
+    })
+  };
+}
+
+
+function migrarPersonal(d) {
+  return unaVez(d, migrarPersonal_);
+}
+
+/**
+ * Pasa la personal a Movimientos: fija la zona de la planilla en la del
+ * script, cada celda con valor pasa a una fila "Saldo anterior a la
+ * migracion" (las notas no se leen: decision de Marcos del 17/10), la grilla
+ * pasa a formulas y se compara celda por celda. Si algo no da igual, deja la
+ * planilla como estaba.
+ */
+function migrarPersonal_() {
+  var ss = planillaPersonal();
+  if (ss.getSheetByName(HOJA_MOVIMIENTOS)) throw new Error('Tu planilla ya está migrada.');
+
+  var grillas = leerGrillaPersonal_(ss);
+  var zonaVieja = ss.getSpreadsheetTimeZone();
+  var resumen = ss.getSheetByName('Resumen');
+  var consultasViejas = resumen ? resumen.getRange(11, 1, 1, 7).getFormulas() : null;
+  var movimientos = null;
+  var saldos = 0;
+
+  try {
+    ss.setSpreadsheetTimeZone(Session.getScriptTimeZone());
+    movimientos = armarMovimientos(ss);
+
+    grillas.forEach(function (g) {
+      if (g.celdas.length) {
+        movimientos.getRange(saldos + 2, 1, g.celdas.length, 6).setValues(g.celdas);
+        saldos += g.celdas.length;
+      }
+      g.filas.forEach(function (i) {
+        var formulas = [];
+        for (var col = 2; col <= 13; col++) formulas.push(formulaCelda(g.tipo, i + 1, col));
+        g.hoja.getRange(i + 1, 2, 1, 12).setFormulas([formulas]);
+      });
+    });
+
+    // La lista por categoria del Resumen tenia los rangos corridos (#95).
+    if (resumen) {
+      resumen.getRange(11, 1).setFormula(consultaCategorias('Ingresos'));
+      resumen.getRange(11, 4).setFormula(consultaCategorias('Gastos'));
+      resumen.getRange(11, 7).setFormula(consultaCategorias('Ahorros'));
+    }
+
+    SpreadsheetApp.flush();
+    var distintas = [];
+    grillas.forEach(function (g) {
+      var ahora = g.hoja.getRange(1, 1, g.datos.length, 13).getValues();
+      g.filas.forEach(function (i) {
+        for (var m = 1; m <= 12; m++) {
+          var antes = Number(g.datos[i][m]) || 0;
+          var despues = Number(ahora[i][m]) || 0;
+          if (Math.abs(antes - despues) >= 0.005) {
+            distintas.push(g.tipo + ' > ' + g.datos[i][0] + ' > ' + MESES[m - 1] + ': ' +
+                           comoPlata(antes) + ' y quedó ' + comoPlata(despues));
+          }
+        }
+      });
+    });
+    if (distintas.length) {
+      throw new Error(distintas.length + ' celdas no dieron igual (por ejemplo ' + distintas[0] + ').');
+    }
+  } catch (e) {
+    try {
+      grillas.forEach(function (g) {
+        g.filas.forEach(function (i) {
+          g.hoja.getRange(i + 1, 2, 1, 12).setValues([g.datos[i].slice(1, 13)]);
+        });
+      });
+      if (movimientos) ss.deleteSheet(movimientos);
+      if (resumen) resumen.getRange(11, 1, 1, 7).setFormulas(consultasViejas);
+      ss.setSpreadsheetTimeZone(zonaVieja);
+      SpreadsheetApp.flush();
+    } catch (e2) { /* lo de abajo avisa igual */ }
+    throw new Error('No migré: ' + e.message + ' Dejé la planilla como estaba.');
+  }
+
+  return 'Planilla migrada: ' + saldos + ' saldos pasados a Movimientos.';
 }
 
 
