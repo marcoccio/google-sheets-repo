@@ -48,6 +48,7 @@ Cada prueba que reproduce un bug lleva el código del hallazgo en el nombre
 | `formularios.test.js` | Los cinco formularios que guardan: validación, éxito y error |
 | `resumen_personal_95.test.js` | Rangos de la lista por categoría del Resumen personal (#95) |
 | `movimientos_22.test.js` | Personal por filas: doble modo, idempotencia, fórmula de la grilla (#22) |
+| `migracion_23.test.js` | Simular y migrar la personal, verificación y vuelta atrás (#23) |
 
 Las pruebas del cliente simulan el navegador: no reemplazan probar en el
 teléfono.
