@@ -37,9 +37,10 @@ El script está vinculado a la planilla, así que hay dos "producciones":
   desde la PC se usa la web app. **`clasp push`
   cambia HEAD al instante.**
 - **Web app (celular)**: la implementación `AKfycby7a82T...` fijada en la
-  versión 11 (v13.1, desde el 17/10/2026). No cambia con `clasp push`; solo con
+  versión 12 (v14, desde el 19/10/2026). No cambia con `clasp push`; solo con
   `clasp version` + `clasp deploy -i <id> -V <versión>`. Para volver atrás:
-  `-V 10` (v13). `clasp push` se saltea los cambios del
+  `-V 11` (v13.1); una personal ya migrada sigue andando con la 11 solo si no
+  se carga nada en ella (la 11 suma en la celda y la pisa la fórmula). `clasp push` se saltea los cambios del
   manifiesto sin avisar: con `appsscript.json` modificado, `clasp push --force`.
 - **La zona del script viaja en el manifiesto de cada versión.** Script y
   planilla tienen que estar en la misma zona (`America/Argentina/Mendoza`
